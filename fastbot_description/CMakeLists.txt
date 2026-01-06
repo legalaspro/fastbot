@@ -7,9 +7,8 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)ññ
+find_package(urdf REQUIRED)
+find_package(xacro REQUIRED)
 
 install(
   DIRECTORY launch models onshape rviz

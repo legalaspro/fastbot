@@ -4,7 +4,7 @@
   <name>fastbot_description</name>
   <version>0.0.1</version>
   <description>Fastbot robot description with clean frame orientations</description>
-  <maintainer email="roalgoal@gmail.com">rodrigo</maintainer>
+  <maintainer email="dmitri.manajev@protonmail.com">Dmitri Manajev</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
