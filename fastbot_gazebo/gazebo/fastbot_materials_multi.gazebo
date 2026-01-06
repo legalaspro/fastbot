@@ -1,0 +1,67 @@
+<?xml version="1.0" ?>
+<robot name="fastbot" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+<xacro:property name="body_color" value="Gazebo/DarkGrey" />
+<xacro:property name="wheel_color" value="Gazebo/Black" />
+<xacro:property name="lidar_base_color" value="Gazebo/Black" />
+<xacro:property name="lidar_top_color" value="Gazebo/Blue" />
+<xacro:property name="caster_color" value="Gazebo/Grey" />
+
+
+<xacro:macro name="fastbot_materials" params="robot_name">
+
+
+    <!--  ##########  BODY COLOR  ##########  -->
+
+    <gazebo reference="${robot_name}_base_link">
+    <material>${body_color}</material>
+    </gazebo>
+
+    <gazebo reference="${robot_name}_imu">
+    <material>${body_color}</material>
+    </gazebo>
+
+    <gazebo reference="${robot_name}_camera">
+    <material>${body_color}</material>
+    </gazebo>
+
+    <!--  ##########  WHEEL COLOR  ##########  -->
+
+    <gazebo reference="${robot_name}_wheel_right">
+    <material>${wheel_color}</material>
+    </gazebo>
+
+    <gazebo reference="${robot_name}_wheel_left">
+    <material>${wheel_color}</material>
+    </gazebo>
+
+    <!--  ##########  CASTER COLOR  ##########  -->
+
+    <gazebo reference="${robot_name}_caster">
+    <material>${caster_color}</material>
+    </gazebo>
+
+    <!--  ##########  LIDAR COLOR  ##########  -->
+
+    <gazebo reference="${robot_name}_lidar_body">
+    <material>${lidar_base_color}</material>
+    </gazebo>
+
+    <gazebo reference="${robot_name}_lidar_motorend">
+    <material>${lidar_top_color}</material>
+    </gazebo>
+
+    <gazebo reference="${robot_name}_lidar_bottom">
+    <material>${lidar_top_color}</material>
+    </gazebo>
+
+    <gazebo reference="${robot_name}_lidar">
+    <material>${lidar_top_color}</material>
+    </gazebo>
+
+</xacro:macro>
+
+
+
+
+</robot>

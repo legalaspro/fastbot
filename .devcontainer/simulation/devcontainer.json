@@ -1,0 +1,79 @@
+{
+  "name": "Fastbot ROS2 Simulation",
+
+  // Use docker-compose - all services defined in devcontainer overlay
+  "dockerComposeFile": [
+    "../../docker/simulation/docker-compose.yaml",
+    "docker-compose.devcontainer.yaml"
+  ],
+  "service": "devcontainer",
+
+  // Workspace mount and folder
+  "workspaceFolder": "/ros2_ws/src",
+
+  // Desktop-lite provides VNC + noVNC for GUI (works on Mac/Windows/Linux)
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "vscode",
+      "webPort": "6080",
+      "vncPort": "5901"
+    }
+    // "ghcr.io/devcontainers/features/node:1": {}
+  },
+
+  // Port forwarding for noVNC web interface (runs in devcontainer)
+  "forwardPorts": [6080, 5901],
+  "portsAttributes": {
+    "6080": {
+      "label": "noVNC Desktop (Browser)",
+      "onAutoForward": "openBrowser"
+    },
+    "5901": {
+      "label": "VNC Direct"
+    },
+    // WebApp ports - published by docker-compose, tell VS Code to ignore
+    "9090": {
+      "label": "ROSBridge WebSocket (webapp container)",
+      "onAutoForward": "ignore"
+    },
+    "11315": {
+      "label": "Web Video Server (webapp container)",
+      "onAutoForward": "ignore"
+    },
+    "8000": {
+      "label": "FastBot WebApp (webapp container)",
+      "onAutoForward": "ignore"
+    }
+  },
+
+  // VS Code extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-iot.vscode-ros",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "twxs.cmake",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.suggest.enabled": false,
+        "python.autoComplete.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "/ros2_ws/install/fastbot_description/lib/python3.10/site-packages",
+          "/ros2_ws/install/fastbot_slam/lib/python3.10/site-packages"
+        ],
+        "ros.rosSetupScript": ""
+      }
+    }
+  },
+
+  // Build the workspace after container creation
+  "postCreateCommand": "cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install",
+
+  // Start VNC on container start
+  "postStartCommand": "/usr/local/share/desktop-init.sh"
+}

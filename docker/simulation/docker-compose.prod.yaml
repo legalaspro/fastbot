@@ -1,0 +1,66 @@
+# =============================================================================
+# Fastbot Production Overrides for Linux
+#
+# Usage: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
+# =============================================================================
+
+services:
+  gazebo:
+    environment:
+      - DISPLAY
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Persist Gazebo cache for faster startup
+      - gazebo_cache:/root/.gazebo
+    restart: unless-stopped
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
+    # Health check - verify Gazebo is publishing
+    healthcheck:
+      test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /clock"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  slam:
+    environment:
+      - DISPLAY
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /map"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+
+  webapp:
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  gazebo_cache:

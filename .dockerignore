@@ -1,0 +1,27 @@
+# Core dumps (Gazebo crashes - these are huge!)
+*.core
+core
+
+# Build artifacts (will be in volumes anyway)
+build/
+install/
+log/
+
+# IDE/Editor
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Temporary files
+*.tmp
+*.bak
+*~
+

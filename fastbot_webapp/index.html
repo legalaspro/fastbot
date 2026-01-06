@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ROS Web Interface - Robot Control</title>
+
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- JavaScript Libraries -->
+    <script
+      type="text/javascript"
+      src="https://cdn.jsdelivr.net/npm/easeljs/lib/easeljs.min.js"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/eventemitter2@5.0.1/lib/eventemitter2.min.js"></script>
+
+    <!-- ROS Libraries -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/roslib@1.4.1/build/roslib.min.js"></script> -->
+    <script type="text/javascript" src="./libs/roslib.min.js"></script>
+    <script type="text/javascript" src="./libs/ros2d.js"></script>
+    <script type="text/javascript" src="./libs/mjpegcanvas.min.js"></script>
+
+    <!-- 3D visualization -->
+    <script src="./libs/three.min.js"></script>
+    <script src="./libs/ColladaLoader.js"></script>
+    <script src="./libs/ColladaLoader2.js"></script>
+    <script src="./libs/STLLoader.js"></script>
+    <script src="./libs/ros3d.min.js"></script>
+    <script src="./patch/ros3d_patch.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+  </head>
+
+  <body class="d-flex flex-column h-100">
+    <div id="vueApp">
+      <!-- header with connection controls -->
+      <header class="header bg-dark text-light py-2">
+        <div class="container">
+          <div class="d-flex align-items-center justify-content-between">
+            <h4 class="mb-0">ROS Web Interface</h4>
+            <div class="d-flex align-items-center">
+              <label class="mb-0 mr-2 text-light">ROSBridge:</label>
+              <input
+                type="text"
+                class="form-control form-control-sm mr-2"
+                style="width: 400px"
+                v-model="rosbridge_address"
+                placeholder="wss://..."
+              />
+              <button
+                class="btn btn-sm btn-success"
+                v-if="connected"
+                @click="disconnect"
+              >
+                <span class="mr-1">●</span> Connected
+              </button>
+              <button class="btn btn-sm btn-primary" v-else @click="connect">
+                Connect
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- main content -->
+      <main class="mt-2">
+        <!-- Connected: Show robot interface -->
+        <div class="container-fluid px-2" v-if="connected">
+          <div class="row no-gutters">
+            <!-- LEFT: Camera Feed (70%) with joystick overlay -->
+            <div class="col-8 pr-2">
+              <div class="card main-camera-card h-100">
+                <div class="card-header py-1 px-2 d-flex align-items-center">
+                  <small class="font-weight-bold ml-auto"
+                    >Live Camera Feed</small
+                  >
+                  <span class="badge badge-success ml-2" v-if="connected"
+                    >● LIVE</span
+                  >
+                </div>
+                <div
+                  class="card-body p-0"
+                  style="position: relative; display: flex"
+                >
+                  <!-- Camera view -->
+                  <div id="divCamera"></div>
+
+                  <!-- Joystick overlay (bottom-left) -->
+                  <div id="joystick-overlay">
+                    <div
+                      id="dragstartzone"
+                      @mousedown="startDrag"
+                      @mousemove="doDrag"
+                    ></div>
+                    <div id="dragCircle" :style="dragCircleStyle"></div>
+                  </div>
+
+                  <!-- Speed overlay (bottom-center) - subscribed to cmd_vel -->
+                  <div id="speed-overlay">
+                    <div class="speed-value">
+                      <span class="speed-icon">🚀</span>
+                      <span class="speed-number"
+                        >{{ cmdVel.linear.toFixed(2) }}</span
+                      >
+                      <span class="speed-unit">m/s</span>
+                    </div>
+                    <div class="speed-value">
+                      <span class="speed-icon">↻</span>
+                      <span class="speed-number"
+                        >{{ cmdVel.angular.toFixed(2) }}</span
+                      >
+                      <span class="speed-unit">rad/s</span>
+                    </div>
+                  </div>
+
+                  <!-- Position overlay (bottom-right) -->
+                  <div id="position-overlay">
+                    <div class="hud-header">
+                      <span>📍 POSE</span>
+                    </div>
+                    <div class="hud-item">
+                      <span class="hud-label">X</span>
+                      <span class="hud-value"
+                        >{{ robotPosition.x !== null ?
+                        robotPosition.x.toFixed(2) : '--' }}</span
+                      >
+                      <span class="hud-unit">m</span>
+                    </div>
+                    <div class="hud-item">
+                      <span class="hud-label">Y</span>
+                      <span class="hud-value"
+                        >{{ robotPosition.y !== null ?
+                        robotPosition.y.toFixed(2) : '--' }}</span
+                      >
+                      <span class="hud-unit">m</span>
+                    </div>
+                    <div class="hud-item">
+                      <span class="hud-label">θ</span>
+                      <span class="hud-value"
+                        >{{ robotPosition.theta !== null ? (robotPosition.theta
+                        * 180 / Math.PI).toFixed(0) : '--' }}</span
+                      >
+                      <span class="hud-unit">°</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: 3D View + 2D Map (30%) -->
+            <div class="col-4">
+              <!-- 3D Robot View -->
+              <div class="card mb-2">
+                <div class="card-header py-1 px-2">
+                  <small class="font-weight-bold">3D View</small>
+                </div>
+                <div class="card-body p-1 text-center">
+                  <div id="div3DViewer"></div>
+                </div>
+              </div>
+
+              <!-- 2D Map -->
+              <div class="card mb-2">
+                <div class="card-header py-1 px-2">
+                  <small class="font-weight-bold">2D Map</small>
+                  <small class="float-right" v-if="robotPosition.x !== null">
+                    X={{ robotPosition.x.toFixed(1) }}, Y={{
+                    robotPosition.y.toFixed(1) }}
+                  </small>
+                </div>
+                <div class="card-body p-1 text-center">
+                  <div id="map"></div>
+                </div>
+              </div>
+
+              <!-- Waypoints -->
+              <div class="card">
+                <div class="card-header py-1 px-2">
+                  <small class="font-weight-bold">📍 Waypoints</small>
+                </div>
+                <div class="card-body p-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <select
+                      class="form-control form-control-sm flex-grow-1"
+                      v-model="selectedWaypointIndex"
+                      :disabled="waypoints.length === 0"
+                    >
+                      <option :value="null" disabled>Select waypoint...</option>
+                      <option
+                        v-for="(wp, index) in waypoints"
+                        :key="index"
+                        :value="index"
+                      >
+                        {{ wp.name }} ({{ wp.x.toFixed(1) }}, {{ wp.y.toFixed(1)
+                        }})
+                      </option>
+                    </select>
+                    <button
+                      class="btn btn-success btn-sm"
+                      @click="goToSelectedWaypoint"
+                      :disabled="selectedWaypointIndex === null"
+                      title="Navigate to waypoint"
+                    >
+                      Go
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Disconnected: Show connection prompt -->
+        <div class="container" v-else>
+          <div class="row justify-content-center" style="margin-top: 15vh">
+            <div class="col-md-6">
+              <div class="card text-center">
+                <div class="card-body py-5">
+                  <div class="mb-4">
+                    <span style="font-size: 64px">🤖</span>
+                  </div>
+                  <h4 class="mb-3">Robot Interface Ready</h4>
+                  <p class="text-muted mb-4">
+                    Enter the ROSBridge WebSocket URL above and click
+                    <strong>Connect</strong> to start controlling your robot.
+                  </p>
+                  <div class="d-flex justify-content-center align-items-center">
+                    <span class="text-muted mr-2">●</span>
+                    <small class="text-muted">Waiting for connection...</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- footer -->
+      <footer class="footer mt-auto bg-dark text-light py-3">
+        <div class="container text-center">
+          <small>ROS Web Interface</small>
+        </div>
+      </footer>
+    </div>
+    <!-- end vueApp -->
+
+    <script type="text/javascript">
+      // We could have loaded main.js simply with:
+      //  <script type="text/javascript" src="main.js">
+      //
+      // BUT we were having caching-related problems.
+      // Loading main.js with a Date.now() in the URL we avoid using cache
+
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = "main.js?v=3." + Date.now();
+      document.head.appendChild(script);
+    </script>
+  </body>
+</html>

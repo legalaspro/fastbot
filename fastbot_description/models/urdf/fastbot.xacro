@@ -1,0 +1,260 @@
+<?xml version="1.0" ?>
+<!-- Generated using onshape-to-robot -->
+<!-- Onshape document_id: 4757b8f98f7afcc7c3655639 -->
+<robot name="fastbot" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="PI" value="3.141592653589793" />
+  <xacro:macro name="fastbot" params="robot_name">
+
+
+    <!-- Link fastbot_chassis -->
+    <link name="base_link">
+        <inertial>
+            <origin xyz="1.61253e-05 0.000669263 0.059916" rpy="0 0 0"/>
+            <mass value="0.24695"/>
+            <inertia ixx="0.000946018" ixy="-8.62213e-08" ixz="-1.4272e-08" iyy="0.000732103" iyz="1.16569e-05" izz="0.000816741"/>
+        </inertial>
+        <!-- Part fastbot_chassis -->
+        <visual>
+            <origin xyz="0.06 -0.0698336 -0.002" rpy="0 -0 3.14159"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/fastbot_chassis.stl"/>
+            </geometry>
+            <material name="base_link_material">
+                <color rgba="0.262745 0.282353 0.301961 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.06 -0.0698336 -0.002" rpy="0 -0 3.14159"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/fastbot_chassis.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Link motor -->
+    <link name="motor">
+        <inertial>
+            <origin xyz="0.0067446 0.0085 -0.00855065" rpy="0 0 0"/>
+            <mass value="0.0339689"/>
+            <inertia ixx="2.5517e-06" ixy="-3.26147e-15" ixz="-9.70451e-07" iyy="1.80062e-05" iyz="-1.94099e-15" izz="1.80884e-05"/>
+        </inertial>
+        <!-- Part fastbot_motor -->
+        <visual>
+            <origin xyz="0.0935 -0.00775 -0.036" rpy="-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/fastbot_motor.stl"/>
+            </geometry>
+            <material name="fastbot_motor_material">
+                <color rgba="0.129412 0.129412 0.129412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.0935 -0.00775 -0.036" rpy="-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/fastbot_motor.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Link wheel_right -->
+    <link name="wheel_right">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+        </inertial>
+        <!-- Part wheel_right -->
+        <visual>
+            <origin xyz="0.1135 0.0162 0.103475" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1.stl"/>
+            </geometry>
+            <material name="wheel_right_material">
+                <color rgba="0.290196 0.290196 0.290196 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.1135 0.0162 0.103475" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1.stl"/>
+            </geometry>
+        </collision>
+        <!-- Part wheel_left -->
+        <visual>
+            <origin xyz="0.1135 0.0162 0.1039" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1__2.stl"/>
+            </geometry>
+            <material name="wheel_left_material">
+                <color rgba="0.290196 0.290196 0.290196 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.1135 0.0162 0.1039" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1__2.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Joint from motor to wheel_right -->
+    <joint name="right_wheel" type="continuous">
+        <origin xyz="-0.02 0.0085 -0.0191" rpy="4.35106e-30 2.46519e-32 3.14159"/>
+        <parent link="motor"/>
+        <child link="wheel_right"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="10" velocity="10"/>
+    </joint>
+    <!-- Joint from base_link to motor -->
+    <joint name="right_motor" type="fixed">
+        <origin xyz="-0.024 0.0236664 0.02275" rpy="-1.5708 -2.94692e-47 -1.5708"/>
+        <parent link="base_link"/>
+        <child link="motor"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="10" velocity="10"/>
+    </joint>
+    <!-- Link motor_2 -->
+    <link name="motor_2">
+        <inertial>
+            <origin xyz="0.0067446 -0.0085 -0.00855065" rpy="0 0 0"/>
+            <mass value="0.0339689"/>
+            <inertia ixx="2.5517e-06" ixy="-3.26147e-15" ixz="-9.70451e-07" iyy="1.80062e-05" iyz="-1.94099e-15" izz="1.80884e-05"/>
+        </inertial>
+        <!-- Part fastbot_motor_2 -->
+        <visual>
+            <origin xyz="0.0935 -0.02475 -0.036" rpy="-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/fastbot_motor.stl"/>
+            </geometry>
+            <material name="fastbot_motor_2_material">
+                <color rgba="0.129412 0.129412 0.129412 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.0935 -0.02475 -0.036" rpy="-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/fastbot_motor.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Link wheel_left -->
+    <link name="wheel_left">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+        </inertial>
+        <!-- Part wheel_d65x25_v1_3 -->
+        <visual>
+            <origin xyz="0.1135 0.0162 0.1039" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1__2.stl"/>
+            </geometry>
+            <material name="wheel_d65x25_v1_3_material">
+                <color rgba="0.290196 0.290196 0.290196 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.1135 0.0162 0.1039" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1__2.stl"/>
+            </geometry>
+        </collision>
+        <!-- Part wheel_d65x25_v1_4 -->
+        <visual>
+            <origin xyz="0.1135 0.0162 0.104325" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1.stl"/>
+            </geometry>
+            <material name="wheel_d65x25_v1_4_material">
+                <color rgba="0.290196 0.290196 0.290196 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0.1135 0.0162 0.104325" rpy="1.5708 1.5708 0"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/wheel_d65x25_v1.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Joint from motor_2 to wheel_left -->
+    <joint name="left_wheel" type="continuous">
+        <origin xyz="-0.02 -0.0085 -0.0191" rpy="-1.2326e-32 -1.54074e-33 3.14159"/>
+        <parent link="motor_2"/>
+        <child link="wheel_left"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="10" velocity="10"/>
+    </joint>
+    <!-- Joint from base_link to motor_2 -->
+    <joint name="left_motor" type="fixed">
+        <origin xyz="0.024 0.0236664 0.02275" rpy="1.5708 -2.96391e-30 -1.5708"/>
+        <parent link="base_link"/>
+        <child link="motor_2"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="10" velocity="10"/>
+    </joint>
+    <!-- Link n10_v2 -->
+    <link name="n10_v2">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+        </inertial>
+        <!-- Part n10_v2 -->
+        <visual>
+            <origin xyz="-0.074 -0.06 0.11" rpy="-3.14159 5.94511e-32 -8.90522e-65"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/n10_v2.stl"/>
+            </geometry>
+            <material name="n10_v2_material">
+                <color rgba="0.0980392 0.0980392 0.0980392 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.074 -0.06 0.11" rpy="-3.14159 5.94511e-32 -8.90522e-65"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/n10_v2.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Joint from base_link to n10_v2 -->
+    <joint name="lidar" type="fixed">
+        <origin xyz="-0.014 -0.00983363 0.108" rpy="3.14159 1.13983e-46 -3.14159"/>
+        <parent link="base_link"/>
+        <child link="n10_v2"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="10" velocity="10"/>
+    </joint>
+    <!-- Link camera -->
+    <link name="camera">
+        <inertial>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <mass value="1e-09"/>
+            <inertia ixx="1e-09" ixy="0" ixz="0" iyy="1e-09" iyz="0" izz="1e-09"/>
+        </inertial>
+        <!-- Part camera -->
+        <visual>
+            <origin xyz="-0.0105 0.0125 -0.00212" rpy="3.14159 -3.05067e-31 -1.55575e-61"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/part_33.stl"/>
+            </geometry>
+            <material name="camera_material">
+                <color rgba="0.34902 0.376471 0.4 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="-0.0105 0.0125 -0.00212" rpy="3.14159 -3.05067e-31 -1.55575e-61"/>
+            <geometry>
+                <mesh filename="package://fastbot_description/onshape/assets/part_33.stl"/>
+            </geometry>
+        </collision>
+    </link>
+    <!-- Joint from base_link to camera -->
+    <joint name="camera" type="fixed">
+        <origin xyz="0.0105 -0.0668336 0.09765" rpy="-1.5708 1.14468e-45 6.41848e-15"/>
+        <parent link="base_link"/>
+        <child link="camera"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="10" velocity="10"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

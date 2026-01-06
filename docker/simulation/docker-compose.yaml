@@ -1,0 +1,62 @@
+# =============================================================================
+# Fastbot ROS2 Simulation - Base Service Definitions
+#
+# Usage:
+#   Prod:         docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up
+#   DevContainer: Merged with .devcontainer/docker-compose.devcontainer.yaml
+# =============================================================================
+
+services:
+  # Gazebo Simulation - Publishes: /scan, /odom, /tf, /clock
+  gazebo:
+    image: legalaspro/fastbot:fastbot-ros2-gazebo
+    platform: linux/amd64
+    container_name: fastbot-gazebo
+    networks:
+      - ros2_network
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_gazebo one_fastbot_room.launch.py
+
+  # SLAM - Subscribes: /scan, /odom, /tf | Publishes: /map
+  slam:
+    image: legalaspro/fastbot:fastbot-ros2-slam
+    platform: linux/amd64
+    container_name: fastbot-slam
+    networks:
+      - ros2_network
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+    depends_on:
+      - gazebo
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_slam navigation.launch.py
+
+  # WebApp - ROSBridge, TF2 Web Republisher, Web Video Server, HTTP Server
+  webapp:
+    image: legalaspro/fastbot:fastbot-ros2-webapp
+    platform: linux/amd64
+    container_name: fastbot-webapp
+    networks:
+      - ros2_network
+    ports:
+      - "9090:9090" # ROSBridge WebSocket
+      - "11315:11315" # Web Video Server
+      - "8000:8000" # Web App HTTP
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+    depends_on:
+      - slam
+    stdin_open: true
+    tty: true
+    command: /ros2_ws/start_web_services.sh
+
+networks:
+  ros2_network:
+    driver: bridge

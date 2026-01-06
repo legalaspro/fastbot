@@ -1,0 +1,48 @@
+FROM osrf/ros:humble-desktop
+
+# Install Gazebo and ROS2 dependencies
+RUN apt-get update && apt-get install -y \
+    # DDS for multi-container communication
+    ros-humble-rmw-cyclonedds-cpp \
+    # Gazebo Classic
+    gazebo \
+    ros-humble-gazebo-ros-pkgs \
+    ros-humble-gazebo-ros2-control \
+    # Robot Control (currently not used)
+    ros-humble-ros2-control \
+    ros-humble-ros2-controllers \
+    # Robot Description
+    ros-humble-xacro \
+    ros-humble-joint-state-publisher \
+    ros-humble-robot-state-publisher \
+    # Transforms
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    # Navigation/Localization
+    ros-humble-robot-localization \
+    && rm -rf /var/lib/apt/lists/*
+
+# ROS2 DDS Configuration
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=1
+
+# Create ROS 2 workspace
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws/
+
+# Copy package files
+COPY ./fastbot_description /ros2_ws/src/fastbot_description
+COPY ./fastbot_gazebo /ros2_ws/src/fastbot_gazebo
+
+# Build workspace with colcon (symlink-install for mesh/resource file access)
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install"
+
+# Source workspace on container start (for interactive shells)
+RUN echo "source /ros2_ws/install/setup.bash" >> ~/.bashrc
+
+# Copy and set entrypoint
+COPY ./docker/simulation/scripts/ros_entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+
+CMD ["bash"]

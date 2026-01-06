@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<!-- Fastbot simulation URDF - includes Gazebo plugins from fastbot_gazebo -->
+<robot name="fastbot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:arg name="robot_name" default="fastbot"/>
+    <xacro:property name="robot_name" value="$(arg robot_name)"/>
+
+    <!-- Include body description -->
+    <xacro:include filename="$(find fastbot_description)/models/urdf/materials.xacro" />
+    <xacro:include filename="$(find fastbot_description)/models/urdf/fastbot_body.xacro" />
+
+    <!-- Instantiate the robot body -->
+    <xacro:fastbot_body robot_name="$(arg robot_name)"/>
+
+    <!-- GAZEBO STUFF - reuse from fastbot_gazebo -->
+    <!-- <xacro:include filename="$(find fastbot_gazebo)/gazebo/fastbot_materials_multi.gazebo" /> -->
+    <xacro:include filename="$(find fastbot_gazebo)/gazebo/fastbot_physics_multi.gazebo" />
+    <xacro:include filename="$(find fastbot_gazebo)/gazebo/fastbot_plugins_multi.gazebo" />
+
+    <!-- <xacro:fastbot_materials robot_name="$(arg robot_name)"/> -->
+    <xacro:fastbot_physics robot_name="$(arg robot_name)"/>
+    <xacro:fastbot_plugins robot_name="$(arg robot_name)"/>
+
+</robot>

@@ -1,0 +1,58 @@
+FROM ros:humble-ros-base
+
+# Install ROS2 web packages and dependencies
+RUN apt-get update && apt-get install -y \
+    # DDS for multi-container communication
+    ros-humble-rmw-cyclonedds-cpp \
+    # ROSBridge Server (bridges ROS2 topics/services to WebSocket)
+    ros-humble-rosbridge-server \
+    # Web Video Server (streams camera images via HTTP/MJPEG)
+    ros-humble-web-video-server \
+    # TF2 dependencies for tf2_web_republisher_py
+    ros-humble-tf2-ros \
+    python3-numpy \
+    python3-pip \
+    # TF tools (for debugging)
+    ros-humble-tf2-tools \
+    && rm -rf /var/lib/apt/lists/* \
+    # Python quaternion library (used by tf2_web_republisher)
+    && pip3 install pyquaternion 
+
+# ROS2 DDS Configuration
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=1
+
+# Create ROS 2 workspace
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws/
+
+# Copy the fastbot_webapp (web interface files)
+# Note: fastbot_description is a symlink in the source, so we copy it explicitly
+COPY ./fastbot_webapp /ros2_ws/src/fastbot_webapp
+COPY ./fastbot_description /ros2_ws/src/fastbot_webapp/fastbot_description
+
+# Copy tf2_web_republisher_py package (Python-based TF2 republisher for roslibjs)
+COPY ./tf2_web_republisher_py /ros2_ws/src/tf2_web_republisher_py
+
+# Build tf2_web_republisher packages (messages first, then the Python node)
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install"
+
+# Source workspace on container start (for interactive shells)
+RUN echo "source /ros2_ws/install/setup.bash" >> ~/.bashrc
+
+# Copy startup script
+COPY ./docker/simulation/scripts/start_web_services.sh /ros2_ws/start_web_services.sh
+RUN chmod +x /ros2_ws/start_web_services.sh
+
+# Copy and set entrypoint
+COPY ./docker/simulation/scripts/ros_entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+
+# Expose ports:
+# 9090 - ROSBridge WebSocket
+# 11315 - Web Video Server
+# 8000 - Web App HTTP Server
+EXPOSE 9090 11315 8000
+
+CMD ["bash"]

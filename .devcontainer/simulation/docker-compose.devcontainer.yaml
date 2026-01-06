@@ -1,0 +1,62 @@
+# =============================================================================
+# DevContainer Overlay - Extends docker/simulation/docker-compose.yaml
+#
+# Requirements:
+#   - Merged via devcontainer.json with base compose
+# =============================================================================
+
+services:
+  # DevContainer - main development environment (not in base)
+  devcontainer:
+    image: legalaspro/fastbot:fastbot-ros2-devcontainer
+    container_name: fastbot-devcontainer
+    privileged: true
+    networks:
+      - ros2_network
+    environment:
+      RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+      ROS_DOMAIN_ID: "1"
+      DISPLAY: ":1"
+    volumes:
+      - ../..:/ros2_ws/src
+      - devcontainer-build:/ros2_ws/build
+      - devcontainer-install:/ros2_ws/install
+      - devcontainer-log:/ros2_ws/log
+      - x11-unix:/tmp/.X11-unix
+    stdin_open: true
+    tty: true
+    command: sleep infinity
+
+  # Gazebo - adds devcontainer dependency and X11 for VNC
+  gazebo:
+    depends_on:
+      - devcontainer
+    environment:
+      DISPLAY: ":1"
+    volumes:
+      - x11-unix:/tmp/.X11-unix
+
+  # SLAM - adds devcontainer dependency and X11 for VNC
+  slam:
+    depends_on:
+      - devcontainer
+    environment:
+      DISPLAY: ":1"
+    volumes:
+      - x11-unix:/tmp/.X11-unix
+
+  # WEBAPP - adds devcontainer dependency and volume mount for live editing
+  webapp:
+    depends_on:
+      - devcontainer
+    volumes:
+      # Mount local fastbot_webapp for live editing (changes reflect immediately)
+      - ../../fastbot_webapp:/ros2_ws/src/fastbot_webapp
+      # Mount fastbot_description for URDF/mesh files
+      - ../../fastbot_description:/ros2_ws/src/fastbot_webapp/fastbot_description
+
+volumes:
+  devcontainer-build:
+  devcontainer-install:
+  devcontainer-log:
+  x11-unix:

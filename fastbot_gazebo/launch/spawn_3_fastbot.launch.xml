@@ -1,0 +1,53 @@
+<?xml version='1.0' ?>
+<launch>
+        <include file="$(find-pkg-share fastbot_gazebo)/launch/spawn.launch.xml">
+                <arg name="robot_name" value="fastbot_1"/>
+                <arg name="robot_file" value="fastbot_multi_sim.xacro"/>
+
+                <arg name="x_spawn" value="0.5"/>
+                <arg name="y_spawn" value="-0.75"/>
+                <arg name="z_spawn" value="0.0"/>
+                <arg name="roll_spawn" value="0.0"/>
+                <arg name="pitch_spawn" value="0.0"/>
+                <arg name="yaw_spawn" value="1.52"/>
+        </include>
+        <!-- <include file="$(find-pkg-share tortoisebot_rmf_utils)/launch/start_battery.launch.xml">
+                <arg name="robot_name" value="fastbot_1"/>
+        </include> -->
+
+
+        <include file="$(find-pkg-share fastbot_gazebo)/launch/spawn.launch.xml">
+                <arg name="robot_name" value="fastbot_2"/>
+                <arg name="robot_file" value="fastbot_multi_sim.xacro"/>
+
+                <arg name="x_spawn" value="-1.25"/>
+                <arg name="y_spawn" value="0.2"/>
+                <arg name="z_spawn" value="0.0"/>
+                <arg name="roll_spawn" value="0.0"/>
+                <arg name="pitch_spawn" value="0.0"/>
+                <arg name="yaw_spawn" value="0.0"/>
+        </include>
+
+        <!-- <include file="$(find-pkg-share tortoisebot_rmf_utils)/launch/start_battery.launch.xml">
+                <arg name="robot_name" value="fastbot_2"/>
+        </include> -->
+
+        <include file="$(find-pkg-share fastbot_gazebo)/launch/spawn.launch.xml">
+                <arg name="robot_name" value="fastbot_3"/>
+                <arg name="robot_file" value="fastbot_multi_sim.xacro"/>
+
+                <arg name="x_spawn" value="-0.5"/>
+                <arg name="y_spawn" value="-0.75"/>
+                <arg name="z_spawn" value="0.0"/>
+                <arg name="roll_spawn" value="0.0"/>
+                <arg name="pitch_spawn" value="0.0"/>
+                <arg name="yaw_spawn" value="1.52"/>
+        </include>
+        <!-- <include file="$(find-pkg-share tortoisebot_rmf_utils)/launch/start_battery.launch.xml">
+                <arg name="robot_name" value="fastbot_3"/>
+        </include> -->
+
+        <node pkg="attach_gazebo" exec="attach_gazebo_node" output="screen">
+        </node>
+
+</launch>

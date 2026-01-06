@@ -1,0 +1,134 @@
+<?xml version="1.0" ?>
+<robot name="fastbot" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+
+
+<xacro:macro name="fastbot_plugins" params="robot_name">
+
+	<!-- Gripper ROS 2 control plugin -->
+	<!-- <gazebo>
+		<plugin name="${robot_name}_gripper_ros2_control" filename="libgazebo_ros2_control.so">
+			<ros>
+				<namespace>${robot_name}</namespace>
+			</ros>
+			<robot_param>${robot_name}_robot_description</robot_param>
+			<robot_param_node>${robot_name}_robot_state_publisher</robot_param_node>
+			<parameters>$(find fastbot_gazebo)/config/gripper_controller_${robot_name}.yaml</parameters>
+		</plugin>
+	</gazebo> -->
+
+	<!-- Differential drive plugin for gazebo -->
+	<gazebo>
+		<plugin name='${robot_name}_diff_drive' filename='libgazebo_ros_diff_drive.so'>
+			<ros>
+				<namespace>${robot_name}</namespace>
+				<argument>--ros-args --remap /cmd_vel:=/${robot_name}/cmd_vel /odom:=/${robot_name}/odom</argument>
+			</ros>
+
+			<!-- wheels -->
+			<left_joint>${robot_name}_left_wheel</left_joint>
+			<right_joint>${robot_name}_right_wheel</right_joint>
+
+			<!-- kinematics -->
+			<wheel_separation>0.12</wheel_separation>
+			<wheel_diameter>0.065</wheel_diameter>
+
+			<!-- limits -->
+			<max_wheel_torque>1.0</max_wheel_torque>
+			<max_wheel_acceleration>1.0</max_wheel_acceleration>
+
+			<!-- output -->
+			<publish_odom>true</publish_odom>
+			<publish_odom_tf>true</publish_odom_tf>
+			<publish_wheel_tf>true</publish_wheel_tf>
+
+			<odometry_frame>${robot_name}_odom</odometry_frame>
+			<robot_base_frame>${robot_name}_base_link</robot_base_frame>
+		</plugin>
+	</gazebo>
+
+
+	<!--  ##########  LIDAR PLUGIN  ##########  -->
+
+	<gazebo reference="${robot_name}_lidar">
+		<sensor name="${robot_name}_lslidar" type="ray">
+			<always_on>true</always_on>
+			<visualize>false</visualize>
+			<update_rate>10</update_rate>
+			<ray>
+			<scan>
+				<horizontal>
+					<samples>270</samples>
+					<min_angle>-3.141593</min_angle>
+					<max_angle>3.141593</max_angle>
+				</horizontal>
+			</scan>
+			<range>
+				<min>0.05</min>
+				<max>20.0</max>
+				<resolution>0.015000</resolution>
+			</range>
+			<noise>
+				<type>gaussian</type>
+				<mean>0.0</mean>
+				<stddev>0.0</stddev>
+			</noise>
+			</ray>
+			<plugin name="${robot_name}_scan" filename="libgazebo_ros_ray_sensor.so">
+			<ros>
+				<remapping>~/out:=${robot_name}/scan</remapping>
+			</ros>
+			<output_type>sensor_msgs/LaserScan</output_type>
+			<frame_name>${robot_name}_lidar</frame_name>
+			</plugin>
+		</sensor>
+	</gazebo>
+
+
+
+
+	<!--  ##########  CAMERA PLUGIN  ##########  -->
+
+
+  <gazebo reference="${robot_name}_camera">
+    <sensor type="camera" name="${robot_name}_camera">
+      <update_rate>30.0</update_rate>
+      <camera name="${robot_name}_head">
+        <horizontal_fov>1.3962634</horizontal_fov>
+        <image>
+          <width>800</width>
+          <height>800</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.02</near>
+          <far>300</far>
+        </clip>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.007</stddev>
+        </noise>
+      </camera>
+      <plugin name="${robot_name}_camera_controller" filename="libgazebo_ros_camera.so">
+        <ros>
+			<namespace>/</namespace>
+        </ros>
+        <alwaysOn>true</alwaysOn>
+        <updateRate>0.0</updateRate>
+        <imageTopicName>image_raw</imageTopicName>
+        <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+        <frameName>${robot_name}_camera</frameName>
+        <hackBaseline>0.07</hackBaseline>
+        <distortionK1>0.0</distortionK1>
+        <distortionK2>0.0</distortionK2>
+        <distortionK3>0.0</distortionK3>
+        <distortionT1>0.0</distortionT1>
+        <distortionT2>0.0</distortionT2>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</xacro:macro>
+
+</robot>
