@@ -12,11 +12,13 @@ services:
       - DISPLAY
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
-      # Persist Gazebo cache for faster startup
-      - gazebo_cache:/root/.gazebo
     restart: unless-stopped
-    mem_limit: 4g
-    mem_reservation: 2g
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 2G
     healthcheck:
       test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /clock"]
       interval: 10s
@@ -30,8 +32,12 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     restart: unless-stopped
-    mem_limit: 2g
-    mem_reservation: 1g
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
     healthcheck:
       test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /map"]
       interval: 10s
@@ -43,14 +49,15 @@ services:
     ports:
       - "7000:8000" # Override: use port 7000 on host
     restart: unless-stopped
-    mem_limit: 1g
-    mem_reservation: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 10s
       timeout: 3s
       retries: 3
       start_period: 15s
-
-volumes:
-  gazebo_cache:
