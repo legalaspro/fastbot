@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     # TF tools (for debugging)
     ros-humble-tf2-tools \
+    # Xacro (needed by fastbot_description for URDF processing)
+    ros-humble-xacro \
     && rm -rf /var/lib/apt/lists/* \
     # Python quaternion library (used by tf2_web_republisher)
     && pip3 install pyquaternion 
