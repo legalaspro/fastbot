@@ -6,6 +6,8 @@
 #   DevContainer: Merged with .devcontainer/docker-compose.devcontainer.yaml
 # =============================================================================
 
+version: "3.7"
+
 services:
   # Gazebo Simulation - Publishes: /scan, /odom, /tf, /clock
   gazebo:

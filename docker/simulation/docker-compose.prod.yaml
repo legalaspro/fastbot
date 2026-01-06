@@ -4,6 +4,8 @@
 # Usage: docker compose -f docker-compose.yaml -f docker-compose.prod.yaml up -d
 # =============================================================================
 
+version: "3.7"
+
 services:
   gazebo:
     environment:
@@ -13,14 +15,8 @@ services:
       # Persist Gazebo cache for faster startup
       - gazebo_cache:/root/.gazebo
     restart: unless-stopped
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 4G
-        reservations:
-          memory: 2G
-    # Health check - verify Gazebo is publishing
+    mem_limit: 4g
+    mem_reservation: 2g
     healthcheck:
       test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /clock"]
       interval: 10s
@@ -34,12 +30,8 @@ services:
     volumes:
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
+    mem_limit: 2g
+    mem_reservation: 1g
     healthcheck:
       test: ["CMD", "bash", "-c", "ros2 topic list | grep -q /map"]
       interval: 10s
@@ -48,13 +40,11 @@ services:
       start_period: 45s
 
   webapp:
+    ports:
+      - "7000:8000" # Override: use port 7000 on host
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
+    mem_limit: 1g
+    mem_reservation: 512m
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 10s
