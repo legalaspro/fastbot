@@ -27,7 +27,7 @@ services:
       - ROS_DOMAIN_ID=1
     devices:
       - /dev/lslidar:/dev/lslidar # Lidar serial
-      - /dev/arduino:/dev/arduino # Arduino Nano (motor controller)
+      - /dev/arduino_nano:/dev/arduino_nano # Arduino Nano (motor controller)
       - /dev/video0:/dev/video0 # Camera
     stdin_open: true
     tty: true
