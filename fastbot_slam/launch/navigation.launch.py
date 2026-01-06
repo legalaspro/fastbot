@@ -13,6 +13,7 @@ Usage:
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, LogInfo, RegisterEventHandler
+from launch.conditions import IfCondition
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node, LifecycleNode
 from launch_ros.substitutions import FindPackageShare
@@ -25,6 +26,7 @@ def generate_launch_description():
     map_file = LaunchConfiguration('map_file')
     use_sim_time = LaunchConfiguration('use_sim_time')
     cmd_vel_out = LaunchConfiguration("cmd_vel_out")
+    rviz = LaunchConfiguration('rviz')
 
     # --- Declare Launch Arguments ---
     declare_map_arg = DeclareLaunchArgument(
@@ -37,6 +39,12 @@ def generate_launch_description():
         'use_sim_time',
         default_value='True',
         description='Use simulation (Gazebo) clock if true'
+    )
+
+    declare_rviz = DeclareLaunchArgument(
+        'rviz',
+        default_value='True',
+        description='Launch RViz (set False for headless robot)'
     )
 
     declare_cmd_vel = DeclareLaunchArgument("cmd_vel_out", default_value="/fastbot/cmd_vel")
@@ -160,13 +168,14 @@ def generate_launch_description():
     )
 
     # --- Things we want to start *after* lifecycle is ACTIVE ---
-    rviz = Node(
+    rviz_node = Node(
         package="rviz2",
         executable="rviz2",
         name="rviz2",
         output="screen",
         parameters=[{"use_sim_time": use_sim_time}],
         arguments=["-d", rviz_config],
+        condition=IfCondition(rviz),
     )
 
     global_loc_trigger = Node(
@@ -198,16 +207,16 @@ def generate_launch_description():
         OnStateTransition(
             target_lifecycle_node=bt_navigator,
             goal_state="active",
-            entities=[rviz],
+            entities=[rviz_node],
         )
     )
 
     return LaunchDescription([
         declare_map_arg,
         declare_use_sim_time,
+        declare_rviz,
         declare_cmd_vel,
         LogInfo(msg=["Using sim time: ", use_sim_time]),
-
 
         # Nav2
         map_server,

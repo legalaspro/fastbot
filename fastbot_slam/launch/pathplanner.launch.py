@@ -14,26 +14,35 @@ Usage:
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction, LogInfo
+from launch.conditions import IfCondition
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+
 def generate_launch_description():
 
     # --- Launch Arguments ---
     map_file = LaunchConfiguration('map_file')
+    use_sim_time = LaunchConfiguration('use_sim_time')
+    rviz = LaunchConfiguration('rviz')
+
+    # --- Declare Launch Arguments ---
     declare_map_arg = DeclareLaunchArgument(
         'map_file',
         default_value="room_gazebo.yaml",
         description="Map YAML filename located in the package's maps/ folder"
     )
-
-    use_sim_time = LaunchConfiguration('use_sim_time')
     declare_use_sim_time = DeclareLaunchArgument(
         'use_sim_time',
         default_value='True',
         description='Use simulation (Gazebo) clock if true'
+    )
+    declare_rviz = DeclareLaunchArgument(
+        'rviz',
+        default_value='True',
+        description='Launch RViz (set False for headless robot)'
     )
 
     # --- Dynamic paths selection ---
@@ -62,19 +71,20 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_map_arg,
-        declare_use_sim_time,   
+        declare_use_sim_time,
+        declare_rviz,
 
         LogInfo(msg=["Using sim time: ", use_sim_time]),
-        
+
         # Localization first (required!)
         localization,
-    
+
         Node(
             package='nav2_controller',
             executable='controller_server',
             name='controller_server',
             output='screen',
-            parameters=[controller_yaml],
+            parameters=[controller_yaml, {'use_sim_time': use_sim_time}],
             remappings=[
                 ('/cmd_vel', '/fastbot/cmd_vel'),
                 ('/odom', '/fastbot/odom')
@@ -85,53 +95,53 @@ def generate_launch_description():
             executable='planner_server',
             name='planner_server',
             output='screen',
-            parameters=[planner_yaml],
-            remappings=[
-                # ('/scan', '/fastbot/scan')
-            ]
-        ),  
+            parameters=[planner_yaml, {'use_sim_time': use_sim_time}],
+        ),
         Node(
             package='nav2_behaviors',
             executable='behavior_server',
             name='behavior_server',
-            parameters=[behavior_yaml],
+            output='screen',
+            parameters=[behavior_yaml, {'use_sim_time': use_sim_time}],
             remappings=[
                 ('/cmd_vel', '/fastbot/cmd_vel'),
                 ('/odom', '/fastbot/odom')
             ],
-            output='screen'),
-
+        ),
         Node(
             package='nav2_bt_navigator',
             executable='bt_navigator',
             name='bt_navigator',
             output='screen',
             parameters=[
-                bt_navigator_yaml, 
-                { 'default_nav_to_pose_bt_xml' : behavior_bt_xml}
+                bt_navigator_yaml,
+                {'use_sim_time': use_sim_time},
+                {'default_nav_to_pose_bt_xml': behavior_bt_xml}
             ],
             remappings=[
                 ('/odom', '/fastbot/odom'),
             ],
         ),
-
         Node(
             package='nav2_lifecycle_manager',
             executable='lifecycle_manager',
             name='lifecycle_manager_pathplanner',
             output='screen',
-            parameters=[{'autostart': True,
-                        'use_sim_time': use_sim_time,
-                        'node_names': [
-                            'planner_server',
-                            'controller_server',
-                            'behavior_server',
-                            'bt_navigator'
-                        ]}
-            ]
+            parameters=[{
+                'autostart': True,
+                'use_sim_time': use_sim_time,
+                'node_names': [
+                    'planner_server',
+                    'controller_server',
+                    'behavior_server',
+                    'bt_navigator'
+                ]
+            }]
         ),
+        # RViz (conditional, delayed)
         TimerAction(
             period=3.0,
+            condition=IfCondition(rviz),
             actions=[
                 Node(
                     package="rviz2",
@@ -139,10 +149,7 @@ def generate_launch_description():
                     name="rviz2",
                     output="screen",
                     parameters=[{"use_sim_time": use_sim_time}],
-                    arguments=[
-                        "-d",
-                        rviz_config,
-                    ],
+                    arguments=["-d", rviz_config],
                 ),
             ]
         )
