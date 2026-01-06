@@ -1,0 +1,50 @@
+# =============================================================================
+# Fastbot ROS2 Real Robot
+#
+# Usage:
+#   Start robot:  docker compose up robot
+#   Start SLAM:   docker compose up slam
+#   Start all:    docker compose up
+#
+# Device mapping:
+#   /dev/lslidar  - Lidar (symlink to /dev/ttyUSBx)
+#   /dev/arduino  - Arduino Nano motor controller (symlink to /dev/ttyUSBx)
+#   /dev/video0   - Camera
+#
+# Create udev rules for consistent device names (see docs/udev-rules.md)
+# =============================================================================
+
+services:
+  # Real Robot - Publishes: /scan, /odom, /tf
+  robot:
+    image: legalaspro/fastbot:fastbot-ros2-real
+    container_name: fastbot-ros2-real
+    network_mode: "host"
+    privileged: true
+    restart: unless-stopped
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+    devices:
+      - /dev/lslidar:/dev/lslidar # Lidar serial
+      - /dev/arduino:/dev/arduino # Arduino Nano (motor controller)
+      - /dev/video0:/dev/video0 # Camera
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_bringup bringup.launch.xml
+
+  # SLAM - Subscribes: /scan, /odom, /tf | Publishes: /map
+  # Run manually: docker compose up slam
+  slam:
+    image: legalaspro/fastbot:fastbot-ros2-slam-real
+    container_name: fastbot-ros2-slam-real
+    network_mode: "host"
+    restart: "no"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+    depends_on:
+      - robot
+    stdin_open: true
+    tty: true
+    command: ros2 launch fastbot_slam cartographer.launch.py use_sim_time:=False rviz:=False

@@ -1,0 +1,43 @@
+FROM ros:humble-ros-base
+
+# Slim SLAM setup for Raspberry Pi 4 (4GB)
+# - Cartographer for mapping
+# - Map server for saving maps
+# - Heavy Nav2 components run on laptop instead
+RUN apt-get update && apt-get install -y \
+    # Build tools
+    python3-colcon-common-extensions \
+    # DDS for multi-container communication
+    ros-humble-rmw-cyclonedds-cpp \
+    # Cartographer SLAM
+    ros-humble-cartographer \
+    ros-humble-cartographer-ros \
+    # Map saving (lightweight)
+    ros-humble-nav2-map-server \
+    # TF tools (for debugging)
+    ros-humble-tf2-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# ROS2 DDS Configuration
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=1
+
+# Create ROS 2 workspace
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws/
+
+# Copy package files
+COPY ./fastbot_slam /ros2_ws/src/fastbot_slam
+
+# Build workspace with colcon (symlink-install for mesh/resource file access)
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install"
+
+# Source workspace on container start (for interactive shells)
+RUN echo "source /ros2_ws/install/setup.bash" >> ~/.bashrc
+
+# Entrypoint
+COPY ./docker/real/scripts/ros_entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+
+CMD ["bash"]
