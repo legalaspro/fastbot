@@ -7,6 +7,11 @@
 #   View logs:           docker compose logs -f
 #   Stop all:            docker compose down
 #
+# Network Setup:
+#   Edit cyclonedds.xml and update the Peer addresses:
+#   - Pi IP: Run 'hostname -I' on Pi
+#   - Dev IP: Run 'hostname -I' on dev machine
+#
 # Startup sequence:
 #   1. Robot container starts first
 #   2. Healthcheck waits for /fastbot/scan topic to be available
@@ -32,6 +37,9 @@ services:
     environment:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=1
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
     devices:
       - /dev/ttyACM0:/dev/lslidar # Lidar serial
       - /dev/ttyUSB0:/dev/arduino_nano # Arduino Nano (motor controller)
@@ -56,6 +64,9 @@ services:
     environment:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=1
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
     depends_on:
       robot:
         condition: service_healthy
