@@ -1,6 +1,7 @@
 # Fastbot ROS2 Docker Makefile
-.PHONY: build-gazebo build-slam build-web build-sim build-real build-real-slam build-all \
-        up down ps shell-gazebo shell-slam shell-web push-sim push-real push-all
+.PHONY: build-gazebo build-slam build-web build-sim build-real build-real-slam build-remote build-all \
+        up down ps shell-gazebo shell-slam shell-web shell-remote \
+        push-sim push-real push-remote push-all
 
 # ============ Configuration ============
 PLATFORM_AMD64 := linux/amd64
@@ -37,8 +38,14 @@ build-real-slam:
 		-f ./docker/real/Dockerfile.slam \
 		-t $(REGISTRY):fastbot-ros2-slam-real .
 
+# ============ Remote Dev Build (amd64 - runs on dev machine) ============
+build-remote:
+	docker build --platform $(PLATFORM_AMD64) \
+		-f ./docker/real/Dockerfile.remote \
+		-t $(REGISTRY):fastbot-ros2-remote .
+
 # ============ Build All ============
-build-all: build-sim build-real build-real-slam
+build-all: build-sim build-real build-real-slam build-remote
 
 # ============ Compose Commands ============
 up:
@@ -70,4 +77,13 @@ push-real:
 	docker push $(REGISTRY):fastbot-ros2-real
 	docker push $(REGISTRY):fastbot-ros2-slam-real
 
-push-all: push-sim push-real
+push-remote:
+	docker push $(REGISTRY):fastbot-ros2-remote
+
+push-all: push-sim push-real push-remote
+
+# ============ Remote Dev Commands ============
+# Use VS Code devcontainer instead: .devcontainer/real/
+# Open folder in VS Code -> "Dev Containers: Reopen in Container"
+shell-remote:
+	docker exec -it fastbot-real-devcontainer bash
