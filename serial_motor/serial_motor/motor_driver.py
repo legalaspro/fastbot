@@ -231,7 +231,7 @@ class MotorDriver(Node):
             self.publish_joint_states()
 
             # Publish odometry based on encoder readings
-            # self.publish_odometry()
+            self.publish_odometry()
 
     def publish_joint_states(self) -> None:
         """Publish joint states for the wheel joints."""
@@ -271,12 +271,11 @@ class MotorDriver(Node):
         avg_distance = (left_distance + right_distance) / 2.0
         d_theta = (right_distance - left_distance) / self.wheel_separation
 
-        # Update robot position
-        self.theta = (self.theta + d_theta) % (
-            2 * math.pi
-        )  # Keep theta within [0, 2*pi]
-        self.x += avg_distance * math.cos(self.theta)
-        self.y += avg_distance * math.sin(self.theta)
+        # Update robot position using midpoint theta for better accuracy
+        mid_theta = self.theta + d_theta / 2.0
+        self.x += avg_distance * math.cos(mid_theta)
+        self.y += avg_distance * math.sin(mid_theta)
+        self.theta = (self.theta + d_theta) % (2 * math.pi)
 
         # Create and publish odometry message
         odom_msg = Odometry()

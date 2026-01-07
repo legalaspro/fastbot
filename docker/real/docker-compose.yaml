@@ -26,12 +26,22 @@ services:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=1
     devices:
-      - /dev/lslidar:/dev/lslidar # Lidar serial
-      - /dev/arduino_nano:/dev/arduino_nano # Arduino Nano (motor controller)
+      - /dev/ttyACM0:/dev/lslidar # Lidar serial
+      - /dev/ttyUSB0:/dev/arduino_nano # Arduino Nano (motor controller)
       - /dev/video0:/dev/video0 # Camera
     stdin_open: true
     tty: true
     command: ros2 launch fastbot_bringup bringup.launch.xml
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "source /opt/ros/humble/setup.bash && ros2 topic list | grep -q /fastbot/scan",
+        ]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 10s
 
   # SLAM - Subscribes: /scan, /odom, /tf | Publishes: /map
   # Run manually: docker compose up slam
@@ -44,7 +54,8 @@ services:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=1
     depends_on:
-      - robot
+      robot:
+        condition: service_healthy
     stdin_open: true
     tty: true
     command: ros2 launch fastbot_slam cartographer.launch.py use_sim_time:=False rviz:=False
