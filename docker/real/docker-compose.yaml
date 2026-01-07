@@ -2,15 +2,22 @@
 # Fastbot ROS2 Real Robot
 #
 # Usage:
-#   Start robot:  docker compose up robot
-#   Start SLAM:   docker compose up slam
-#   Start all:    docker compose up
+#   Start robot only:    docker compose up -d robot
+#   Start robot + SLAM:  docker compose up -d
+#   View logs:           docker compose logs -f
+#   Stop all:            docker compose down
 #
-# Device mapping:
-#   /dev/lslidar  - Lidar (symlink to /dev/ttyUSBx)
-#   /dev/arduino_nano  - Arduino Nano motor controller (symlink to /dev/ttyUSBx)
-#   /dev/video0   - Camera
+# Startup sequence:
+#   1. Robot container starts first
+#   2. Healthcheck waits for /fastbot/scan topic to be available
+#   3. SLAM container starts only after robot is healthy
 #
+# Device mapping (host -> container):
+#   /dev/ttyACM0 -> /dev/lslidar       (Lidar serial)
+#   /dev/ttyUSB0 -> /dev/arduino_nano  (Arduino motor controller)
+#   /dev/video0  -> /dev/video0        (Camera)
+#
+# Note: Adjust ttyACM0/ttyUSB0 if your devices enumerate differently.
 # Create udev rules for consistent device names (see docs/udev-rules.md)
 # =============================================================================
 
@@ -33,11 +40,7 @@ services:
     tty: true
     command: ros2 launch fastbot_bringup bringup.launch.xml
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "source /opt/ros/humble/setup.bash && ros2 topic list | grep -q /fastbot/scan",
-        ]
+      test: bash -c "source /opt/ros/humble/setup.bash && ros2 topic list | grep -q /fastbot/scan"
       interval: 5s
       timeout: 10s
       retries: 12
