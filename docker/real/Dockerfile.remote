@@ -1,0 +1,80 @@
+# =============================================================================
+# Fastbot Remote Development Container
+# 
+# Runs on dev machine, connects to Pi robot via CycloneDDS peer discovery.
+# Includes: RViz, Nav2, rosbridge, web_video_server, webapp
+#
+# Build: docker build -f Dockerfile.remote -t fastbot-remote ../..
+# =============================================================================
+FROM ros:humble-ros-base
+
+# Install ROS2 packages
+RUN apt-get update && apt-get install -y \
+    # DDS for multi-machine communication
+    ros-humble-rmw-cyclonedds-cpp \
+    # Visualization
+    ros-humble-rviz2 \
+    ros-humble-rviz-common \
+    ros-humble-rviz-default-plugins \
+    # Nav2 stack
+    ros-humble-navigation2 \
+    ros-humble-nav2-bringup \
+    # ROSBridge Server (bridges ROS2 to WebSocket for webapp)
+    ros-humble-rosbridge-server \
+    # Web Video Server (streams camera via HTTP/MJPEG)
+    ros-humble-web-video-server \
+    # TF2 dependencies
+    ros-humble-tf2-ros \
+    ros-humble-tf2-tools \
+    # Robot model visualization (robot_state_publisher runs on Pi)
+    ros-humble-xacro \
+    # Python dependencies
+    python3-numpy \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip3 install pyquaternion
+
+# ROS2 DDS Configuration
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+ENV ROS_DOMAIN_ID=1
+
+# Create ROS2 workspace
+RUN mkdir -p /ros2_ws/src
+WORKDIR /ros2_ws/
+
+# Copy fastbot packages needed for visualization
+COPY ./fastbot_description /ros2_ws/src/fastbot_description
+COPY ./fastbot_slam /ros2_ws/src/fastbot_slam
+
+# Copy webapp and its description symlink
+COPY ./fastbot_webapp /ros2_ws/src/fastbot_webapp
+COPY ./fastbot_description /ros2_ws/src/fastbot_webapp/fastbot_description
+
+# Copy tf2_web_republisher_py package
+COPY ./tf2_web_republisher_py /ros2_ws/src/tf2_web_republisher_py
+
+# Build workspace
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    cd /ros2_ws && \
+    colcon build --symlink-install"
+
+# Source workspace in bashrc
+RUN echo "source /ros2_ws/install/setup.bash" >> ~/.bashrc
+
+# Copy startup script
+COPY ./docker/real/scripts/start_remote_services.sh /ros2_ws/start_remote_services.sh
+RUN chmod +x /ros2_ws/start_remote_services.sh
+
+# Copy entrypoint
+COPY ./docker/real/scripts/ros_entrypoint.sh /ros_entrypoint.sh
+RUN chmod +x /ros_entrypoint.sh
+ENTRYPOINT ["/ros_entrypoint.sh"]
+
+# Expose ports:
+# 9090 - ROSBridge WebSocket
+# 11315 - Web Video Server
+# 8000 - Web App HTTP Server
+EXPOSE 9090 11315 8000
+
+CMD ["bash"]
+

@@ -1,0 +1,94 @@
+{
+  "name": "Fastbot Real Robot (Remote)",
+
+  // Pre-built image
+  "image": "legalaspro/fastbot:fastbot-ros2-remote",
+
+  // Host network for CycloneDDS peer discovery
+  "runArgs": [
+    "--network=host",
+    "--memory=8g",
+    "--memory-swap=8g",
+    "--shm-size=512m"
+  ],
+
+  // Environment variables
+  "containerEnv": {
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+    "ROS_DOMAIN_ID": "1",
+    "CYCLONEDDS_URI": "file:///ros2_ws/cyclonedds.xml"
+  },
+
+  // Workspace mount
+  "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws/src,type=bind",
+  "workspaceFolder": "/ros2_ws/src",
+
+  // Mount CycloneDDS config
+  "mounts": [
+    "source=${localWorkspaceFolder}/docker/real/cyclonedds.xml,target=/ros2_ws/cyclonedds.xml,type=bind,readonly"
+  ],
+
+  // Desktop-lite provides VNC + noVNC for GUI (works on Mac/Windows/Linux)
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "vscode",
+      "webPort": "6080",
+      "vncPort": "5901"
+    }
+  },
+
+  // Port forwarding
+  "forwardPorts": [6080, 5901, 9090, 8000, 11315],
+  "portsAttributes": {
+    "6080": {
+      "label": "noVNC Desktop (Browser)",
+      "onAutoForward": "openBrowser"
+    },
+    "5901": {
+      "label": "VNC Direct"
+    },
+    "9090": {
+      "label": "ROSBridge WebSocket",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "WebApp HTTP Server",
+      "onAutoForward": "openBrowser"
+    },
+    "11315": {
+      "label": "Web Video Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // VS Code extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-iot.vscode-ros",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "twxs.cmake",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.suggest.enabled": false,
+        "python.autoComplete.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "/ros2_ws/install/fastbot_description/lib/python3.10/site-packages",
+          "/ros2_ws/install/fastbot_slam/lib/python3.10/site-packages"
+        ],
+        "ros.rosSetupScript": ""
+      }
+    }
+  },
+
+  // Build ROS workspace on first create
+  "postCreateCommand": "cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install",
+
+  // Start VNC on container start
+  "postStartCommand": "/usr/local/share/desktop-init.sh"
+}

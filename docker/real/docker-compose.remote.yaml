@@ -1,0 +1,47 @@
+# =============================================================================
+# Fastbot Remote Development Container (Reference Example)
+#
+# Shows how to run the remote container with docker-compose.
+# For development, prefer using VS Code devcontainer: .devcontainer/real/
+#
+# Prerequisites:
+#   1. Edit cyclonedds.xml with correct IPs:
+#      - Pi IP: Run 'hostname -I' on Pi
+#      - Dev IP: Run 'hostname -I' on dev machine
+#   2. Pi must be running with robot + slam containers
+#   3. Build image first: make build-remote
+#
+# Usage:
+#   Start:  docker compose -f docker-compose.remote.yaml up -d
+#   Logs:   docker compose -f docker-compose.remote.yaml logs -f
+#   Stop:   docker compose -f docker-compose.remote.yaml down
+#   Shell:  docker exec -it fastbot-remote bash
+#   RViz:   docker exec -it fastbot-remote rviz2 (requires X11 forwarding)
+#
+# Access:
+#   - Webapp:    http://localhost:8000
+#   - ROSBridge: ws://localhost:9090
+#   - Video:     http://localhost:11315
+# =============================================================================
+
+services:
+  remote:
+    image: legalaspro/fastbot:fastbot-ros2-remote
+    container_name: fastbot-remote
+    # Host network for CycloneDDS peer discovery (no port mapping needed)
+    network_mode: "host"
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+      # Display for RViz (Linux X11)
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_QPA_PLATFORM=xcb
+    volumes:
+      # CycloneDDS config with peer IPs
+      - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
+      # X11 socket for RViz GUI (Linux only)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    stdin_open: true
+    tty: true
+    command: /ros2_ws/start_remote_services.sh
