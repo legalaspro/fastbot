@@ -8,7 +8,7 @@
 #
 # Device mapping:
 #   /dev/lslidar  - Lidar (symlink to /dev/ttyUSBx)
-#   /dev/arduino  - Arduino Nano motor controller (symlink to /dev/ttyUSBx)
+#   /dev/arduino_nano  - Arduino Nano motor controller (symlink to /dev/ttyUSBx)
 #   /dev/video0   - Camera
 #
 # Create udev rules for consistent device names (see docs/udev-rules.md)
