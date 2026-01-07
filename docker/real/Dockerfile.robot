@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     python3-serial \
     # DDS for multi-container communication
     ros-humble-rmw-cyclonedds-cpp \
+    # TF2 for transform broadcasting
+    ros-humble-tf2-ros \
     # Lidar dependencies
     libboost-all-dev \
     libpcl-dev \

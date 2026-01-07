@@ -9,11 +9,12 @@ from threading import Lock
 from rclpy.node import Node
 from typing import List, Optional
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, TransformStamped
 from sensor_msgs.msg import JointState
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
 from serial_motor_msgs.msg import MotorVels, EncoderVals
+from tf2_ros import TransformBroadcaster
 
 
 class MotorDriver(Node):
@@ -73,6 +74,9 @@ class MotorDriver(Node):
         self.encoder_pub_ = self.create_publisher(EncoderVals, "encoder_vals", 10)
         self.joint_state_pub_ = self.create_publisher(JointState, "joint_states", 10)
         self.odom_pub_ = self.create_publisher(Odometry, "odom", 10)
+
+        # TF broadcaster for odom -> base_link transform
+        self.tf_broadcaster = TransformBroadcaster(self)
 
         # Timer callback to continuously publish odometry
         self.create_timer(0.1, self._timer_callback, callback_group=self.callback_group)
@@ -298,8 +302,22 @@ class MotorDriver(Node):
         odom_msg.twist.twist.linear.x = avg_distance / dt
         odom_msg.twist.twist.angular.z = d_theta / dt
 
-        # Publish message
+        # Publish odometry message
         self.odom_pub_.publish(odom_msg)
+
+        # Broadcast TF transform: odom -> base_link
+        odom_tf = TransformStamped()
+        odom_tf.header.stamp = odom_msg.header.stamp
+        odom_tf.header.frame_id = odom_msg.header.frame_id  # fastbot_odom
+        odom_tf.child_frame_id = odom_msg.child_frame_id    # fastbot_base_link
+        odom_tf.transform.translation.x = self.x
+        odom_tf.transform.translation.y = self.y
+        odom_tf.transform.translation.z = 0.0
+        odom_tf.transform.rotation.x = quat[0]
+        odom_tf.transform.rotation.y = quat[1]
+        odom_tf.transform.rotation.z = quat[2]
+        odom_tf.transform.rotation.w = quat[3]
+        self.tf_broadcaster.sendTransform(odom_tf)
 
     def euler_to_quaternion(
         self, roll: float, pitch: float, yaw: float
