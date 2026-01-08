@@ -1,116 +1,179 @@
 # Fastbot Remote Access - VPN Setup
 
-Connect to your Fastbot robot from a development machine (Mac/Linux/Windows) using VPN.
+Connect to your Fastbot robot from a development machine (Mac/Linux/Windows) over VPN.
 
-## Contents
+## Quick Start (Tailscale - Recommended)
 
-- [Overview](#overview)
-- [Option A: Tailscale](#option-a-tailscale)
-- [Option B: Husarnet](#option-b-husarnet)
-- [Comparison](#comparison)
+```bash
+# 1. Pi: Install Tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+tailscale ip -4  # Note this IP (e.g., 100.88.1.19)
 
-## Overview
+# 2. Dev: Create .env with auth key
+echo "TAILSCALE_AUTHKEY=tskey-auth-YOUR_KEY" > .devcontainer/real/.env
 
-To control the robot remotely, you need a VPN to connect your dev machine and the Raspberry Pi. This enables:
+# 3. Dev: Open in VS Code → "Reopen in Container" → "Fastbot Real Robot (Remote)"
 
-- **ROS2 topic discovery** across networks
-- **WebApp** for robot control (port 8000)
-- **ROSBridge** for web-based ROS communication (port 9090)
-- **Web Video Server** for camera streaming (port 11315)
-- **RViz2** for visualization
-- **Nav2** for autonomous navigation
+# 4. In devcontainer: Get dev IP and update cyclonedds.xml
+tailscale ip -4  # Note this IP (e.g., 100.73.231.76)
+# Edit docker/real/cyclonedds.xml with both IPs
 
-Choose either **Tailscale** (easier setup, IPv4) or **Husarnet** (robotics-focused, IPv6).
+# 5. Pi: Start robot
+cd ~/fastbot/docker/real && docker compose up -d robot
+
+# 6. Dev: Start services and verify
+./services.sh start
+ros2 topic list  # Should see /fastbot/scan, /odom, etc.
+```
 
 ---
 
-## Option A: Tailscale
+## Contents
 
-Tailscale is a zero-config VPN that works well with ROS2/CycloneDDS.
+- [Architecture](#architecture)
+- [Option A: Tailscale](#option-a-tailscale-recommended)
+- [Option B: Husarnet](#option-b-husarnet)
+- [Services & Ports](#services--ports)
+- [Comparison](#comparison)
+- [Troubleshooting](#troubleshooting)
 
-### 1. Install Tailscale
+---
 
-**On Raspberry Pi:**
+## Architecture
+
+```
+┌─────────────────────────────┐         ┌─────────────────────────────┐
+│  Raspberry Pi (Robot)       │         │  Dev Machine (Mac/Win/Linux)│
+│                             │         │                             │
+│  ┌───────────────────────┐  │         │  ┌───────────────────────┐  │
+│  │ Docker: robot + slam  │  │         │  │ VS Code Devcontainer  │  │
+│  │ - Lidar driver        │  │         │  │ - RViz2               │  │
+│  │ - Motor driver        │  │         │  │ - Nav2                │  │
+│  │ - Cartographer        │  │   VPN   │  │ - ROSBridge (:9090)   │  │
+│  │ - CycloneDDS ─────────┼──┼─────────┼──┼─ CycloneDDS           │  │
+│  └───────────────────────┘  │         │  │ - WebVideo (:11315)   │  │
+│                             │         │  │ - WebApp (:8000)      │  │
+│  Tailscale: 100.x.x.x       │         │  └───────────────────────┘  │
+│  (or Husarnet: fc94:...)    │         │                             │
+└─────────────────────────────┘         │  Tailscale: 100.y.y.y       │
+                                        │  noVNC Desktop: :6080       │
+                                        └─────────────────────────────┘
+```
+
+**Why VPN?** ROS2 DDS uses multicast for discovery, which doesn't work across networks. VPN creates a virtual network where both machines can see each other via unicast peer discovery.
+
+---
+
+## Option A: Tailscale (Recommended)
+
+Tailscale is a zero-config mesh VPN. Works seamlessly with CycloneDDS.
+
+### 1. Install Tailscale on Pi
 
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 ```
 
-**On Mac (Devcontainer):**
-The devcontainer installs and runs Tailscale automatically. You just need to provide an auth key.
+Note the Tailscale IP:
 
-### 2. Get Tailscale Auth Key
+```bash
+tailscale ip -4
+# Example: 100.88.1.19
+```
 
-Generate a reusable auth key from [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys):
+### 2. Get Auth Key for Devcontainer
 
-- Click "Create auth key"
-- Check "Reusable" and "Ephemeral"
-- Copy the key
+Generate a reusable auth key from [Tailscale Admin Console](https://login.tailscale.com/admin/settings/keys):
+
+1. Click **"Generate auth key"**
+2. Enable **"Reusable"** and **"Ephemeral"**
+3. Copy the key (starts with `tskey-auth-`)
 
 ### 3. Configure Devcontainer
 
-In `.devcontainer/real/.env`:
+Create `.devcontainer/real/.env`:
 
-```env
-TAILSCALE_AUTHKEY=tskey-auth-YOUR_KEY_HERE
+```bash
+TAILSCALE_AUTHKEY=tskey-auth-xxxxxxxxxxxxx
 ```
 
-Replace `YOUR_KEY_HERE` with your auth key from step 2.
+> **Note:** This file is gitignored. Never commit auth keys.
 
-### 4. Get Tailscale IPs
+### 4. Start Devcontainer
 
-**On Pi:**
+In VS Code:
+
+1. Open Command Palette (Cmd+Shift+P)
+2. Select **"Dev Containers: Reopen in Container"**
+3. Choose **"Fastbot Real Robot (Remote)"**
+
+The container will:
+
+- Start Tailscale daemon automatically
+- Connect using your auth key
+- Persist state in `tailscale-state` volume
+
+### 5. Get Devcontainer Tailscale IP
+
+In the devcontainer terminal:
 
 ```bash
 tailscale ip -4
+# Example: 100.73.231.76
 ```
 
-**In Devcontainer:**
-Open devcontainer and run:
+### 6. Update CycloneDDS Config
 
-```bash
-tailscale ip -4
-```
-
-### 5. Update CycloneDDS Config
-
-On the Pi, edit `cyclonedds.xml` with both IPs:
+Edit `docker/real/cyclonedds.xml` with both IPs:
 
 ```xml
 <Peers>
-  <Peer address="100.x.x.x"/>  <!-- Pi Tailscale IP -->
-  <Peer address="100.y.y.y"/>  <!-- Devcontainer Tailscale IP -->
+  <Peer address="100.88.1.19"/>   <!-- Pi Tailscale IP -->
+  <Peer address="100.73.231.76"/> <!-- Devcontainer Tailscale IP -->
 </Peers>
 ```
 
-### 6. Run Robot with Tailscale Config
+> **Important:** This file is used by BOTH Pi and devcontainer. Update it once, both sides read it.
+
+### 7. Start Robot on Pi
 
 ```bash
-# On Pi - uses cyclonedds.xml (Tailscale)
 cd ~/fastbot/docker/real
 docker compose up -d robot
+
+# Optional: Start SLAM
+docker compose up -d slam
 ```
 
-### 7. Run Remote Devcontainer (Dev Machine)
+### 8. Start Services in Devcontainer
 
-Open the repo in VS Code and select "Reopen in Container" → "Fastbot Real Robot (Remote)"
+```bash
+# Start all web services
+./services.sh start
 
-**Alternative: Docker Compose**
+# Verify ROS2 connectivity
+ros2 topic list
+# Should see: /fastbot/scan, /odom, /tf, /map (if SLAM running)
+```
 
-If using Docker Compose instead of devcontainer, use `docker-compose.remote.yaml` with additional steps.
+### 9. Access Applications
 
-### 8. Access Services
-
-- **WebApp:** http://localhost:8000
-- **ROSBridge:** ws://localhost:9090
-- **Video:** http://localhost:11315
+| Service       | URL                    | Description          |
+| ------------- | ---------------------- | -------------------- |
+| noVNC Desktop | http://localhost:6080  | Run RViz2 here       |
+| WebApp        | http://localhost:8000  | Robot control UI     |
+| ROSBridge     | ws://localhost:9090    | WebSocket for webapp |
+| Web Video     | http://localhost:11315 | Camera stream        |
 
 ---
 
 ## Option B: Husarnet
 
-Husarnet is a P2P VPN designed for robotics with native IPv6 support.
+Husarnet is a P2P VPN designed for robotics. Uses IPv6 with hostname-based discovery.
+
+> **Note:** Husarnet requires a sidecar container on Mac/Windows since Docker can't access host VPN interfaces. There is no Husarnet-specific devcontainer - use docker-compose only.
 
 ### 1. Create Husarnet Account
 
@@ -118,7 +181,7 @@ Husarnet is a P2P VPN designed for robotics with native IPv6 support.
 2. Create a network (e.g., "fastbot-network")
 3. Copy the **Join Code**
 
-### 2. Install Husarnet on Raspberry Pi
+### 2. Install Husarnet on Pi (Host, not Docker)
 
 ```bash
 curl -fsSL https://install.husarnet.com/install.sh | sudo bash
@@ -130,101 +193,201 @@ Verify:
 
 ```bash
 husarnet status
+# Should show: fastbot-pi is connected
 ```
 
-### 3. Update CycloneDDS Config
+### 3. Configure Pi to Use Husarnet CycloneDDS
 
-The robot uses `cyclonedds-husarnet.xml`. Husarnet adds hostnames to `/etc/hosts`, so peer discovery works via hostnames.
-
-### 4. Run Robot with Husarnet Config
-
-Edit `docker-compose.yaml` to use Husarnet config:
+Edit `docker-compose.yaml` on Pi:
 
 ```yaml
 volumes:
   - ./cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
 ```
 
-Then start:
+### 4. Start Robot on Pi
 
 ```bash
 cd ~/fastbot/docker/real
 docker compose up -d robot
 ```
 
-### 5. Run Remote Container (Dev Machine)
+### 5. Start Remote Container (Dev Machine)
 
-On Mac/Windows, Docker containers can't access host VPN interfaces directly. Use the Husarnet sidecar pattern:
+Create `.env` in `docker/real/`:
 
-**Option A: VS Code Devcontainer (Recommended)**
+```bash
+echo "HUSARNET_JOIN_CODE=<your-join-code>" > docker/real/.env
+```
 
-1. Create `.devcontainer/real-husarnet/.env`:
+Start with docker-compose (sidecar pattern):
 
-   ```
-   HUSARNET_JOIN_CODE=<your-join-code>
-   ```
+```bash
+cd docker/real
+docker compose -f docker-compose.remote-husarnet.yaml up -d
+```
 
-2. Open repo in VS Code → "Reopen in Container" → "Fastbot Real Robot (Husarnet)"
+This starts:
 
-**Option B: Docker Compose**
-
-1. Create `.env` file:
-
-   ```bash
-   cd docker/real
-   echo "HUSARNET_JOIN_CODE=<your-join-code>" > .env
-   ```
-
-2. Start:
-   ```bash
-   docker compose -f docker-compose.remote-husarnet.yaml up -d
-   ```
+- `husarnet` container: Provides `hnet0` VPN interface
+- `fastbot-remote` container: Shares husarnet's network namespace
 
 ### 6. Verify Connection
 
 ```bash
-# Check Husarnet status in container
 docker exec husarnet husarnet status
-
-# Should show both peers as "active"
+# Should show both fastbot-pi and fastbot-dev as "active"
 ```
 
-### 7. Access Services
+### 7. Access Shell
 
-- **WebApp:** http://localhost:8000
-- **ROSBridge:** ws://localhost:9090
-- **Video:** http://localhost:11315
+```bash
+docker exec -it fastbot-remote bash
+ros2 topic list
+```
+
+---
+
+## Services & Ports
+
+The devcontainer includes a service manager script:
+
+```bash
+# Start all services (ROSBridge, WebVideo, TF2Web, HTTP Server)
+./services.sh start
+
+# Check status
+./services.sh status
+
+# View logs
+./services.sh logs
+
+# Stop all
+./services.sh stop
+
+# Save map from Cartographer
+./services.sh save-map my_room
+```
+
+### Port Reference
+
+| Port  | Service                 | Protocol  |
+| ----- | ----------------------- | --------- |
+| 6080  | noVNC (browser desktop) | HTTP      |
+| 5901  | VNC Direct              | VNC       |
+| 8000  | WebApp                  | HTTP      |
+| 9090  | ROSBridge               | WebSocket |
+| 11315 | Web Video Server        | HTTP      |
 
 ---
 
 ## Comparison
 
-| Feature                  | Tailscale                 | Husarnet                        |
-| ------------------------ | ------------------------- | ------------------------------- |
-| IP type                  | IPv4 (100.x.x.x)          | IPv6 (fc94:...)                 |
-| CycloneDDS compatibility | ✅ Excellent              | ⚠️ Requires hostname resolution |
-| Mac Docker support       | ✅ We installed Tailscale | ⚠️ Needs sidecar container      |
-| Robotics-focused         | ❌ General VPN            | ✅ Built for ROS                |
-| Self-hosted option       | ❌ No                     | ✅ Yes                          |
+| Feature                  | Tailscale             | Husarnet                 |
+| ------------------------ | --------------------- | ------------------------ |
+| **Setup difficulty**     | ⭐ Easy               | ⭐⭐ Moderate            |
+| **IP type**              | IPv4 (100.x.x.x)      | IPv6 (fc94:...)          |
+| **CycloneDDS**           | ✅ Excellent          | ⚠️ Needs hostname config |
+| **Mac/Windows Docker**   | ✅ Works in container | ⚠️ Requires sidecar      |
+| **Devcontainer support** | ✅ Yes                | ❌ Docker-compose only   |
+| **Self-hosted option**   | ❌ No                 | ✅ Yes                   |
+| **Robotics features**    | ❌ General VPN        | ✅ Built for ROS         |
+| **Free tier**            | 100 devices           | 5 devices                |
 
-**Recommendation:** Use **Tailscale** for simpler setup, or **Husarnet** if you need robotics-specific features or self-hosting.
+**Recommendation:** Use **Tailscale** unless you need self-hosting or have specific Husarnet requirements.
+
+---
+
+## File Reference
+
+```
+.devcontainer/real/
+├── devcontainer.json              # Main devcontainer config
+├── devcontainer.tailscale-feature.json  # Reference: official Tailscale feature
+├── .env                           # TAILSCALE_AUTHKEY (gitignored)
+├── services.sh                    # Service manager script
+└── setup-tailscale.sh             # Tailscale startup script
+
+docker/real/
+├── cyclonedds.xml                 # Tailscale peer config
+├── cyclonedds-husarnet.xml        # Husarnet peer config
+├── docker-compose.yaml            # Pi: robot + slam
+├── docker-compose.remote.yaml     # Dev: Tailscale (reference)
+├── docker-compose.remote-husarnet.yaml  # Dev: Husarnet sidecar
+├── Dockerfile.remote              # Dev container image
+├── Dockerfile.robot               # Pi robot image
+└── Dockerfile.slam                # Pi SLAM image
+```
 
 ---
 
 ## Troubleshooting
 
-### ROS topics not visible?
+### ROS2 topics not visible?
 
-Check VPN connection:
+1. **Check VPN connection:**
+
+   ```bash
+   # Tailscale
+   tailscale status
+
+   # Husarnet
+   husarnet status
+   ```
+
+2. **Ping the other machine:**
+
+   ```bash
+   ping 100.x.x.x  # Pi's Tailscale IP
+   ```
+
+3. **Check CycloneDDS config:**
+   ```bash
+   echo $CYCLONEDDS_URI
+   cat /ros2_ws/cyclonedds.xml
+   ```
+
+### Tailscale not connecting?
 
 ```bash
-# Tailscale
-tailscale status
+# Check daemon status
+pgrep tailscaled
 
-# Husarnet
-husarnet status
+# Manually start
+bash /ros2_ws/src/.devcontainer/real/setup-tailscale.sh
+
+# Check logs
+tail -f /var/log/tailscaled.log
 ```
 
-### CycloneDDS not discovering peers?
+### noVNC not working?
 
-Verify the correct `cyclonedds.xml` is mounted and IPs/hostnames are correct.
+```bash
+# Restart desktop service
+/usr/local/share/desktop-init.sh
+```
+
+### Transform timeout errors?
+
+Clock drift between Pi and devcontainer. Options:
+
+1. **Enable NTP on Pi:** `sudo timedatectl set-ntp true`
+2. **Increase tolerance:** Edit `transform_tolerance` in config files (temporary fix)
+
+### WebApp can't connect to ROSBridge?
+
+```bash
+# Check ROSBridge is running
+./services.sh status
+
+# Restart services
+./services.sh restart
+```
+
+---
+
+## Notes
+
+- **Auth keys expire.** Generate new ones if connection fails after weeks/months.
+- **Tailscale state persists** in Docker volume `tailscale-state`. First connection requires auth key, subsequent starts auto-connect.
+- **Maps saved** via `./services.sh save-map` go to `/ros2_ws/maps/` (Docker volume `fastbot-maps`).
