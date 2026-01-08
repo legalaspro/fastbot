@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CycloneDDS Configuration for Fastbot (Husarnet)
+
+  Based on: https://husarnet.com/blog/ros2-docker
+  
+  Prerequisites: 
+    1. Create Husarnet account: https://app.husarnet.com
+    2. Create a network and get join codes
+    3. Pi: Install Husarnet on host and join as "fastbot-pi"
+    4. Mac: Use Husarnet sidecar container joined as "fastbot-dev"
+
+  Key: Use Husarnet HOSTNAMES (not IPs) - they resolve via /etc/hosts
+-->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain id="any">
+    <General>
+      <Interfaces>
+        <NetworkInterface name="hnet0" />  <!-- Husarnet's virtual interface -->
+      </Interfaces>
+      <AllowMulticast>false</AllowMulticast>  <!-- No multicast over Husarnet -->
+      <Transport>udp6</Transport>  <!-- IPv6 only -->
+    </General>
+    <Discovery>
+      <!-- Use Husarnet hostnames - these resolve to IPv6 addresses via /etc/hosts -->
+      <Peers>
+        <Peer address="fastbot-pi"/>
+        <Peer address="fastbot-dev"/>
+      </Peers>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+    </Discovery>
+    <Tracing>
+      <Verbosity>warning</Verbosity>
+      <OutputFile>stderr</OutputFile>
+    </Tracing>
+  </Domain>
+</CycloneDDS>

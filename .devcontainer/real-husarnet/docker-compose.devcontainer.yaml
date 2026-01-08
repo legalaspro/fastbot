@@ -1,0 +1,83 @@
+# =============================================================================
+# Docker Compose for Fastbot Devcontainer with Husarnet
+#
+# This compose file is used by devcontainer.husarnet.json
+# Provides: Husarnet VPN sidecar + ROS2 devcontainer
+#
+# Setup:
+#   1. Copy .env.example to .env
+#   2. Add your HUSARNET_JOIN_CODE to .env
+#   3. Open folder in VS Code, select "Reopen in Container"
+#   4. Choose "Fastbot Real Robot (Husarnet)" configuration
+# =============================================================================
+
+services:
+  # Husarnet VPN daemon - provides hnet0 interface
+  # Docs: https://husarnet.com/docs/docker-guide/
+  husarnet:
+    image: husarnet/husarnet:latest
+    container_name: husarnet-devcontainer
+    restart: unless-stopped
+    # Only NET_ADMIN capability needed (not privileged, not SYS_ADMIN)
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    # Enable IPv6 for Husarnet overlay network
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    volumes:
+      # Persist identity - join once, reuse forever
+      - husarnet-config:/var/lib/husarnet
+    env_file:
+      - .env
+    environment:
+      - HUSARNET_HOSTNAME=fastbot-dev
+      - HUSARNET_DEBUG=1 # Suppress verbose logs (guide recommendation)
+    # Expose ports here since devcontainer uses this network
+    ports:
+      - "6080:6080" # noVNC
+      - "5901:5901" # VNC
+      - "8000:8000" # Web App
+      - "9090:9090" # ROSBridge WebSocket
+      - "11315:11315" # Web Video Server
+    healthcheck:
+      test: ["CMD", "husarnet", "status"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+
+  # ROS2 Devcontainer
+  devcontainer:
+    image: legalaspro/fastbot:fastbot-ros2-remote
+    container_name: fastbot-devcontainer-husarnet
+    # Share network namespace with husarnet container (sees hnet0)
+    network_mode: service:husarnet
+    depends_on:
+      husarnet:
+        condition: service_healthy
+    # Enable IPv6 for Husarnet overlay (required for ROS2 container too)
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+    volumes:
+      # Workspace mount (devcontainer will override this)
+      - ../..:/ros2_ws/src:cached
+      # # CycloneDDS config with Husarnet peers
+      - ../../docker/real/cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+      # Persist maps
+      - fastbot-maps:/ros2_ws/maps
+    stdin_open: true
+    tty: true
+    # Keep container running for devcontainer attach
+    command: sleep infinity
+
+volumes:
+  husarnet-config:
+    name: husarnet-fastbot-devcontainer
+  fastbot-maps:
+    name: fastbot-maps-husarnet

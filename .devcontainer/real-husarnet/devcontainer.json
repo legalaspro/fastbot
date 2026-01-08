@@ -1,0 +1,71 @@
+{
+  "name": "Fastbot Real Robot (Husarnet)",
+  "dockerComposeFile": "./docker-compose.devcontainer.yaml",
+  "service": "devcontainer",
+  "workspaceFolder": "/ros2_ws/src",
+  "shutdownAction": "stopCompose",
+
+  // Desktop-lite provides VNC + noVNC for GUI (works on Mac/Windows/Linux)
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "vscode",
+      "webPort": "6080",
+      "vncPort": "5901"
+    }
+  },
+
+  // Port forwarding (exposed on husarnet container, forwarded here)
+  "forwardPorts": [6080, 5901, 9090, 8000, 11315],
+  "portsAttributes": {
+    "6080": {
+      "label": "noVNC Desktop (Browser)",
+      "onAutoForward": "openBrowser"
+    },
+    "5901": {
+      "label": "VNC Direct"
+    },
+    "9090": {
+      "label": "ROSBridge WebSocket",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "WebApp HTTP Server",
+      "onAutoForward": "openBrowser"
+    },
+    "11315": {
+      "label": "Web Video Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // VS Code extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-iot.vscode-ros",
+        "redhat.vscode-xml",
+        "redhat.vscode-yaml",
+        "twxs.cmake",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.suggest.enabled": false,
+        "python.autoComplete.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages",
+          "/ros2_ws/install/fastbot_description/lib/python3.10/site-packages",
+          "/ros2_ws/install/fastbot_slam/lib/python3.10/site-packages"
+        ],
+        "ros.rosSetupScript": ""
+      }
+    }
+  },
+
+  // Build visualization/webapp packages
+  "postCreateCommand": "bash -c 'cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install --packages-select fastbot_description fastbot_slam tf2_web_republisher_py'",
+
+  // Start VNC desktop on container start
+  "postStartCommand": "/usr/local/share/desktop-init.sh"
+}
