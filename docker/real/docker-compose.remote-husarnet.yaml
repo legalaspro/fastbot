@@ -1,0 +1,84 @@
+# =============================================================================
+# Fastbot Remote Development Container with Husarnet (Mac/Windows/Linux)
+#
+# Uses sidecar pattern: Husarnet container provides VPN, ROS2 container shares it
+# Identity persists in volume - join once, reuse forever
+#
+# Prerequisites:
+#   1. Create Husarnet account: https://app.husarnet.com
+#   2. Create a network and copy the join code
+#   3. Create .env file: echo "HUSARNET_JOIN_CODE=your-code" > .env
+#
+# Usage:
+#   Start:  docker compose -f docker-compose.remote-husarnet.yaml up -d
+#   Logs:   docker compose -f docker-compose.remote-husarnet.yaml logs -f
+#   Stop:   docker compose -f docker-compose.remote-husarnet.yaml down
+#   Shell:  docker exec -it fastbot-remote bash
+#
+# Access:
+#   - Webapp:    http://localhost:8000
+#   - ROSBridge: ws://localhost:9090
+#   - Video:     http://localhost:11315
+# =============================================================================
+
+services:
+  # Husarnet VPN daemon - provides hnet0 interface
+  husarnet:
+    image: husarnet/husarnet:latest
+    container_name: husarnet
+    restart: unless-stopped
+    # Only NET_ADMIN capability needed (not privileged, not SYS_ADMIN)
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    # Enable IPv6 for Husarnet overlay network
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=0
+    volumes:
+      # Persist identity - join once, reuse forever
+      - husarnet-config:/var/lib/husarnet
+    environment:
+      - HUSARNET_JOIN_CODE=${HUSARNET_JOIN_CODE}
+      - HUSARNET_HOSTNAME=fastbot-dev
+      - HUSARNET_DEBUG=1
+    # Expose ports here since remote uses this network namespace
+    ports:
+      - "8000:8000" # Web App
+      - "9090:9090" # ROSBridge WebSocket
+      - "11315:11315" # Web Video Server
+    healthcheck:
+      test: ["CMD", "husarnet", "status"]
+      interval: 5s
+      timeout: 10s
+      retries: 12
+      start_period: 15s
+
+  # ROS2 Remote Development Container
+  remote:
+    image: legalaspro/fastbot:fastbot-ros2-remote
+    container_name: fastbot-remote
+    # Share network namespace with husarnet container (sees hnet0)
+    network_mode: service:husarnet
+    depends_on:
+      husarnet:
+        condition: service_healthy
+    environment:
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=1
+      - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+      # Display for RViz (Linux X11 - won't work on Mac without VNC)
+      - DISPLAY=${DISPLAY:-:0}
+      - QT_QPA_PLATFORM=xcb
+    volumes:
+      # CycloneDDS config with Husarnet peers
+      - ./cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+      # X11 socket for RViz GUI (Linux only)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    stdin_open: true
+    tty: true
+    command: /ros2_ws/start_remote_services.sh
+
+volumes:
+  husarnet-config:
+    name: husarnet-fastbot-dev
