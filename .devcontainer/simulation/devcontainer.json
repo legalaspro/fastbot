@@ -71,8 +71,8 @@
     }
   },
 
-  // Build the workspace after container creation
-  "postCreateCommand": "cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install",
+  // Build simulation packages (no hardware drivers needed)
+  "postCreateCommand": "bash -c 'cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install --packages-select fastbot_description fastbot_gazebo fastbot_slam tf2_web_republisher_py'",
 
   // Start VNC on container start
   "postStartCommand": "/usr/local/share/desktop-init.sh"

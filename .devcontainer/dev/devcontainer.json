@@ -71,8 +71,8 @@
     }
   },
 
-  // Build ROS workspace and install webapp dependencies on first create
-  "postCreateCommand": "cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install && source /ros2_ws/install/setup.bash && cd /ros2_ws/src/fastbot_webapp && npm install",
+  // Build all packages (full development environment) and install webapp dependencies
+  "postCreateCommand": "bash -c 'cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install && cd /ros2_ws/src/fastbot_webapp && npm install'",
 
   // Start VNC on container start
   "postStartCommand": "/usr/local/share/desktop-init.sh"
