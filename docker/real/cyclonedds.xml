@@ -1,75 +1,35 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
-  CycloneDDS Configuration for Fastbot
-  
-  Enables peer-to-peer discovery over WiFi between:
-  - Raspberry Pi (robot)
-  - Development machine (RViz, Nav2, webapp)
-  
-  Usage:
-    Set environment variable before running:
-      export CYCLONEDDS_URI=file:///path/to/cyclonedds.xml
-    
-    Configure peer IPs via environment variables:
-      export FASTBOT_PI_IP=192.168.1.100
-      export FASTBOT_DEV_IP=192.168.1.17
-    
-    Or edit the Peer addresses below directly.
-  
-  Note: Both machines MUST have the same peer list for discovery to work.
+  CycloneDDS Configuration for Fastbot (Tailscale)
+
+  Prerequisites: Install Tailscale on both machines
+    - Mac: https://tailscale.com/download (use the app)
+    - Pi:  curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+
+  Get Tailscale IPs: tailscale ip -4
+  Update the Peer addresses below with your Tailscale IPs.
 -->
 <CycloneDDS xmlns="https://cdds.io/config">
   <Domain id="any">
     <General>
-      <!-- 
-        Network interface selection:
-        - "auto" = CycloneDDS picks the best interface
-        - Use specific interface name like "wlan0" or "eth0" if needed
-        - Use IP address like "192.168.1.100" to force specific interface
-      -->
       <Interfaces>
-        <NetworkInterface autodetermine="true" priority="default" />
+        <!-- Use Tailscale interface name -->
+        <NetworkInterface name="tailscale0" priority="default" />
       </Interfaces>
-      <!-- Allow both multicast (LAN) and unicast (explicit peers) -->
-      <AllowMulticast>true</AllowMulticast>
+      <AllowMulticast>false</AllowMulticast>
     </General>
-    
     <Discovery>
-      <!--
-        Explicit peer list for discovery over WiFi
-        Add IP addresses of ALL machines that need to communicate
-        
-        IMPORTANT: Update these IPs to match your network!
-        - Find Pi IP:  hostname -I (on Pi)
-        - Find Dev IP: hostname -I (on dev machine)
-      -->
+      <!-- Tailscale IPs: run 'tailscale ip -4' on each machine -->
       <Peers>
-        <!-- Raspberry Pi IP - UPDATE THIS -->
-        <Peer address="192.168.1.100"/>
-        <!-- Development machine IP - UPDATE THIS -->
-        <Peer address="192.168.1.17"/>
+        <Peer address="100.88.1.19"/>  <!-- Pi -->
+        <Peer address="100.73.231.76"/> <!-- Mac devcontainer -->
       </Peers>
-      
-      <!-- 
-        ParticipantIndex: 
-        - "auto" = each process gets unique ID automatically
-        - Needed when running multiple containers on same machine
-      -->
       <ParticipantIndex>auto</ParticipantIndex>
-      
-      <!-- 
-        MaxAutoParticipantIndex:
-        - Max number of DDS participants per machine
-        - Increase if you have many ROS2 nodes
-      -->
       <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
     </Discovery>
-    
     <Tracing>
-      <!-- Set to "fine" or "finer" for debugging discovery issues -->
       <Verbosity>warning</Verbosity>
       <OutputFile>stderr</OutputFile>
     </Tracing>
   </Domain>
 </CycloneDDS>
-

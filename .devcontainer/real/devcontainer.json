@@ -1,18 +1,23 @@
 {
   "name": "Fastbot Real Robot (Remote)",
 
-  // Pre-built image
+  // Build from Dockerfile (or use pre-built: make build-remote && make push-remote)
   "image": "legalaspro/fastbot:fastbot-ros2-remote",
+  // "build": {
+  //   "dockerfile": "../../docker/real/Dockerfile.remote",
+  //   "context": "../.."
+  // },
 
-  // Host network for CycloneDDS peer discovery
+  // Privileged for Tailscale TUN device, host network for DDS
   "runArgs": [
     "--network=host",
+    "--privileged",
     "--memory=8g",
     "--memory-swap=8g",
-    "--shm-size=512m"
+    "--shm-size=512m",
+    "--env-file",
+    "${localWorkspaceFolder}/.devcontainer/real/.env"
   ],
-
-  // Environment variables
   "containerEnv": {
     "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
     "ROS_DOMAIN_ID": "1",
@@ -23,9 +28,11 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/ros2_ws/src,type=bind",
   "workspaceFolder": "/ros2_ws/src",
 
-  // Mount CycloneDDS config
+  // Mount CycloneDDS config and persistent volumes
   "mounts": [
-    "source=${localWorkspaceFolder}/docker/real/cyclonedds.xml,target=/ros2_ws/cyclonedds.xml,type=bind,readonly"
+    "source=${localWorkspaceFolder}/docker/real/cyclonedds.xml,target=/ros2_ws/cyclonedds.xml,type=bind,readonly",
+    "source=tailscale-state,target=/var/lib/tailscale,type=volume",
+    "source=fastbot-maps,target=/ros2_ws/maps,type=volume"
   ],
 
   // Desktop-lite provides VNC + noVNC for GUI (works on Mac/Windows/Linux)
@@ -86,9 +93,12 @@
     }
   },
 
-  // Build ROS workspace on first create
-  "postCreateCommand": "cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install",
+  // Build only visualization/webapp packages (robot drivers run on Pi)
+  "postCreateCommand": "bash -c 'cd /ros2_ws && source /opt/ros/humble/setup.bash && colcon build --symlink-install --packages-select fastbot_description fastbot_slam tf2_web_republisher_py'",
 
-  // Start VNC on container start
-  "postStartCommand": "/usr/local/share/desktop-init.sh"
+  // Start VNC and Tailscale on container start
+  "postStartCommand": "bash -c '/usr/local/share/desktop-init.sh & bash /ros2_ws/src/.devcontainer/real/setup-tailscale.sh'",
+
+  // Show status on attach
+  "postAttachCommand": "echo '\\n=== Tailscale Status ===' && (tailscale ip -4 2>/dev/null || echo 'Not connected - run: bash /ros2_ws/src/.devcontainer/real/setup-tailscale.sh') && echo ''"
 }

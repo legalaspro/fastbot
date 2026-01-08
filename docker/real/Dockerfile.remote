@@ -1,6 +1,6 @@
 # =============================================================================
 # Fastbot Remote Development Container
-# 
+#
 # Runs on dev machine, connects to Pi robot via CycloneDDS peer discovery.
 # Includes: RViz, Nav2, rosbridge, web_video_server, webapp
 #
@@ -9,7 +9,7 @@
 FROM ros:humble-ros-base
 
 # Install ROS2 packages
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends  \
     # DDS for multi-machine communication
     ros-humble-rmw-cyclonedds-cpp \
     # Visualization
@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y \
     # Python dependencies
     python3-numpy \
     python3-pip \
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install pyquaternion
 
@@ -77,4 +79,7 @@ ENTRYPOINT ["/ros_entrypoint.sh"]
 EXPOSE 9090 11315 8000
 
 CMD ["bash"]
+
+# Install Tailscale VPN (for connecting to Pi over Tailscale network)
+RUN curl -fsSL https://tailscale.com/install.sh | sh
 
