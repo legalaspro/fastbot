@@ -18,21 +18,34 @@ from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node, LifecycleNode
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.event_handlers import OnStateTransition
+from nav2_common.launch import RewrittenYaml
 
 
 def generate_launch_description():
 
     # --- Launch Arguments ---
     map_file = LaunchConfiguration('map_file')
+    map_dir = LaunchConfiguration('map_dir')
     use_sim_time = LaunchConfiguration('use_sim_time')
     cmd_vel_out = LaunchConfiguration("cmd_vel_out")
     rviz = LaunchConfiguration('rviz')
+
+    # --- Dynamic paths selection ---
+    pkg_share = FindPackageShare("fastbot_slam")
+    config_dir = PathJoinSubstitution([pkg_share, 'config'])
+    rviz_config = PathJoinSubstitution([pkg_share, 'rviz', 'pathplanning.rviz'])
 
     # --- Declare Launch Arguments ---
     declare_map_arg = DeclareLaunchArgument(
         'map_file',
         default_value="room_gazebo.yaml",
-        description="Map YAML filename located in the package's maps/ folder"
+        description="Map YAML filename (e.g., apartment.yaml)"
+    )
+
+    declare_map_dir = DeclareLaunchArgument(
+        'map_dir',
+        default_value=PathJoinSubstitution([pkg_share, 'maps']),
+        description='Directory containing map files (default: package maps/, or /ros2_ws/maps for real robot)'
     )
 
     declare_use_sim_time = DeclareLaunchArgument(
@@ -49,20 +62,49 @@ def generate_launch_description():
 
     declare_cmd_vel = DeclareLaunchArgument("cmd_vel_out", default_value="/fastbot/cmd_vel")
 
-
-    # --- Dynamic paths selection ---
-    pkg_share = FindPackageShare("fastbot_slam")
-    config_dir = PathJoinSubstitution([pkg_share, 'config'])
-    rviz_config = PathJoinSubstitution([pkg_share, 'rviz', 'pathplanning.rviz'])
+    declare_global_loc = DeclareLaunchArgument(
+        'auto_global_localization',
+        default_value='True',
+        description='Auto-trigger global localization on startup (set False if using set_initial_pose)'
+    )
+    auto_global_loc = LaunchConfiguration('auto_global_localization')
 
     # Select configs
-    map_yaml = PathJoinSubstitution([pkg_share, 'maps', map_file])
-    amcl_yaml = PathJoinSubstitution([config_dir, 'amcl_config.yaml'])
-    controller_yaml = PathJoinSubstitution([config_dir, 'controller.yaml'])
-    bt_navigator_yaml = PathJoinSubstitution([config_dir, 'bt_navigator.yaml'])
-    planner_yaml = PathJoinSubstitution([config_dir, 'planner_server.yaml'])
-    behavior_yaml = PathJoinSubstitution([config_dir, 'behavior.yaml'])
+    map_yaml = PathJoinSubstitution([map_dir, map_file])
     behavior_bt_xml = PathJoinSubstitution([config_dir, 'navigate_to_pose_w_replanning_and_recovery.xml'])
+
+    # Use RewrittenYaml to substitute use_sim_time in all Nav2 configs
+    param_substitutions = {'use_sim_time': use_sim_time}
+
+    amcl_yaml = RewrittenYaml(
+        source_file=PathJoinSubstitution([config_dir, 'amcl_config.yaml']),
+        param_rewrites=param_substitutions,
+        convert_types=True
+    )
+
+    controller_yaml = RewrittenYaml(
+        source_file=PathJoinSubstitution([config_dir, 'controller.yaml']),
+        param_rewrites=param_substitutions,
+        convert_types=True
+    )
+
+    planner_yaml = RewrittenYaml(
+        source_file=PathJoinSubstitution([config_dir, 'planner_server.yaml']),
+        param_rewrites=param_substitutions,
+        convert_types=True
+    )
+
+    bt_navigator_yaml = RewrittenYaml(
+        source_file=PathJoinSubstitution([config_dir, 'bt_navigator.yaml']),
+        param_rewrites=param_substitutions,
+        convert_types=True
+    )
+
+    behavior_yaml = RewrittenYaml(
+        source_file=PathJoinSubstitution([config_dir, 'behavior.yaml']),
+        param_rewrites=param_substitutions,
+        convert_types=True
+    )
 
 
     # --- Nav2 lifecycle nodes (so we can react to ACTIVE) ---
@@ -83,11 +125,10 @@ def generate_launch_description():
         output="screen",
         parameters=[
             amcl_yaml,
-            {"use_sim_time": use_sim_time},
             {'scan_topic': '/fastbot/scan'}
         ],
         remappings=[
-            ('/odom', '/fastbot/odom'), 
+            ('/odom', '/fastbot/odom'),
         ]
     )
 
@@ -95,9 +136,9 @@ def generate_launch_description():
         package="nav2_controller",
         executable="controller_server",
         name="controller_server",
-        namespace="", 
+        namespace="",
         output="screen",
-        parameters=[controller_yaml, {"use_sim_time": use_sim_time}],
+        parameters=[controller_yaml],
         remappings=[
             ("/cmd_vel", cmd_vel_out),
             ('/odom', '/fastbot/odom')
@@ -108,9 +149,9 @@ def generate_launch_description():
         package="nav2_planner",
         executable="planner_server",
         name="planner_server",
-        namespace="", 
+        namespace="",
         output="screen",
-        parameters=[planner_yaml, {"use_sim_time": use_sim_time}],
+        parameters=[planner_yaml],
         remappings=[
                 # ('/scan', '/fastbot/scan')
         ]
@@ -122,7 +163,7 @@ def generate_launch_description():
         name="behavior_server",
         namespace="",
         output="screen",
-        parameters=[behavior_yaml, {"use_sim_time": use_sim_time}],
+        parameters=[behavior_yaml],
         remappings=[
             ("/cmd_vel", cmd_vel_out),
             ('/odom', '/fastbot/odom')
@@ -133,11 +174,10 @@ def generate_launch_description():
         package="nav2_bt_navigator",
         executable="bt_navigator",
         name="bt_navigator",
-        namespace="", 
+        namespace="",
         output="screen",
         parameters=[
             bt_navigator_yaml,
-            {"use_sim_time": use_sim_time},
             {"default_nav_to_pose_bt_xml": behavior_bt_xml},
         ],
         remappings=[
@@ -149,7 +189,7 @@ def generate_launch_description():
         package="nav2_lifecycle_manager",
         executable="lifecycle_manager",
         name="lifecycle_manager",
-        namespace="", 
+        namespace="",
         output="screen",
         parameters=[
             {
@@ -191,15 +231,17 @@ def generate_launch_description():
                 "angular_speed": 0.4,
             },
         ],
+        condition=IfCondition(auto_global_loc),
     )
 
-    # Start global localization when AMCL is ACTIVE
+    # Start global localization when AMCL is ACTIVE (only if auto_global_localization is True)
     start_global_loc_when_amcl_active = RegisterEventHandler(
         OnStateTransition(
             target_lifecycle_node=amcl,
             goal_state="active",
             entities=[global_loc_trigger],
-        )
+        ),
+        condition=IfCondition(auto_global_loc),
     )
 
     # Start RViz when BT navigator is ACTIVE (Nav2 fully up)
@@ -213,12 +255,16 @@ def generate_launch_description():
 
     return LaunchDescription([
         declare_map_arg,
+        declare_map_dir,
         declare_use_sim_time,
         declare_rviz,
         declare_cmd_vel,
+        declare_global_loc,
+        LogInfo(msg=["Using map: ", map_yaml]),
         LogInfo(msg=["Using sim time: ", use_sim_time]),
+        LogInfo(msg=["Auto global localization: ", auto_global_loc]),
 
-        # Nav2
+        # Nav2 nodes
         map_server,
         amcl,
         planner_server,

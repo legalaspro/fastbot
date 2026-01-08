@@ -8,7 +8,7 @@ planner_server:
       tolerance: 0.5
       use_astar: false
       allow_unknown: true
-  
+
 global_costmap:
   global_costmap:
     ros__parameters:
@@ -16,7 +16,8 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: fastbot_base_link
-      use_sim_time: True
+      use_sim_time: true
+      transform_tolerance: 1.0
       footprint: "[ [0.11, 0.09], [0.11, -0.09], [-0.11, -0.09], [-0.11, 0.09] ]"
       resolution: 0.05
       track_unknown_space: true
