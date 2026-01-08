@@ -2,7 +2,7 @@
 
 [![ROS 2 Humble](https://img.shields.io/badge/ROS%202-Humble-blue?logo=ros)](https://docs.ros.org/en/humble/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)](https://www.docker.com/)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-legalaspro%2Ffastbot-2496ED?logo=docker)](https://hub.docker.com/r/legalaspro/fastbot)
 [![Nav2](https://img.shields.io/badge/Nav2-Navigation-green)](https://navigation.ros.org/)
 [![Cartographer](https://img.shields.io/badge/Cartographer-SLAM-orange)](https://google-cartographer-ros.readthedocs.io/)
 
