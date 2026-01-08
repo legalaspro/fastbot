@@ -34,14 +34,22 @@ services:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=1
       - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
+      - TAILSCALE_AUTHKEY=${TAILSCALE_AUTHKEY}
       # Display for RViz (Linux X11)
       - DISPLAY=${DISPLAY:-:0}
       - QT_QPA_PLATFORM=xcb
     volumes:
       # CycloneDDS config with peer IPs
       - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
+      # Tailscale state persistence
+      - tailscale-state:/var/lib/tailscale
       # X11 socket for RViz GUI (Linux only)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
     stdin_open: true
     tty: true
     command: /ros2_ws/start_remote_services.sh
+
+# Named volumes for persistence
+volumes:
+  tailscale-state:
+    name: tailscale-fastbot-dev

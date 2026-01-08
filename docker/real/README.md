@@ -1,4 +1,4 @@
-# Fastbot Real Robot - Docker Setup
+# Fastbot Real Robot - Raspberry Pi Setup
 
 Quick guide to run Fastbot on Raspberry Pi with Docker.
 
@@ -12,6 +12,8 @@ Quick guide to run Fastbot on Raspberry Pi with Docker.
 - [Auto-Start on Boot](#auto-start-on-boot-optional)
 - [Device Mapping](#device-mapping)
 - [Troubleshooting](#troubleshooting)
+
+> **Remote Access:** To control the robot from a development machine (Mac/Linux/Windows), see [README-REMOTE.md](README-REMOTE.md).
 
 ## Prerequisites
 
