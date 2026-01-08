@@ -1,19 +1,39 @@
 # Fastbot Real Robot - Raspberry Pi Setup
 
-Quick guide to run Fastbot on Raspberry Pi with Docker.
+Run Fastbot on Raspberry Pi with Docker.
+
+## Quick Start
+
+```bash
+# 1. Clone repo and navigate to docker/real
+cd ~/fastbot/docker/real
+
+# 2. Check device mappings (adjust if needed)
+ls /dev/ttyUSB* /dev/ttyACM*
+
+# 3. Start robot
+docker compose up -d robot
+
+# 4. Check health status
+docker ps  # Should show (healthy)
+
+# 5. Optional: Start SLAM
+docker compose up -d slam
+```
+
+---
 
 ## Contents
 
 - [Prerequisites](#prerequisites)
 - [USB Device Setup](#usb-device-setup)
 - [Running the Robot](#running-the-robot)
-- [Adding SLAM After Robot is Running](#adding-slam-after-robot-is-running)
+- [VPN Setup for Remote Access](#vpn-setup-for-remote-access)
 - [Rebuilding Images](#rebuilding-images)
 - [Auto-Start on Boot](#auto-start-on-boot-optional)
-- [Device Mapping](#device-mapping)
 - [Troubleshooting](#troubleshooting)
 
-> **Remote Access:** To control the robot from a development machine (Mac/Linux/Windows), see [README-REMOTE.md](README-REMOTE.md).
+> **📡 Remote Access:** To control the robot from a development machine (Mac/Linux/Windows), see [README-REMOTE.md](README-REMOTE.md).
 
 ## Prerequisites
 
@@ -130,6 +150,46 @@ If robot is already running and you want to add SLAM:
 ```bash
 docker compose up -d slam
 ```
+
+## VPN Setup for Remote Access
+
+To connect from a development machine, install a VPN on the Pi:
+
+### Tailscale (Recommended)
+
+```bash
+# Install
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+
+# Get IP for CycloneDDS config
+tailscale ip -4
+# Example: 100.88.1.19
+```
+
+### Husarnet (Alternative)
+
+```bash
+# Install
+curl -fsSL https://install.husarnet.com/install.sh | sudo bash
+sudo systemctl enable husarnet
+sudo husarnet join <YOUR_JOIN_CODE> fastbot-pi
+
+# For Husarnet, update docker-compose.yaml to use husarnet config:
+# volumes:
+#   - ./cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+```
+
+### Time Sync (Important!)
+
+Ensure NTP is enabled to prevent transform timeout errors:
+
+```bash
+sudo timedatectl set-ntp true
+timedatectl status
+```
+
+> **Full remote setup guide:** See [README-REMOTE.md](README-REMOTE.md)
 
 ## Rebuilding Images
 

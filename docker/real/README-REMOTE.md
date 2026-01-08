@@ -173,7 +173,7 @@ ros2 topic list
 
 Husarnet is a P2P VPN designed for robotics. Uses IPv6 with hostname-based discovery.
 
-> **Note:** Husarnet requires a sidecar container on Mac/Windows since Docker can't access host VPN interfaces. There is no Husarnet-specific devcontainer - use docker-compose only.
+> **Note:** Husarnet uses a sidecar container pattern on Mac/Windows since Docker can't access host VPN interfaces directly.
 
 ### 1. Create Husarnet Account
 
@@ -212,38 +212,53 @@ cd ~/fastbot/docker/real
 docker compose up -d robot
 ```
 
-### 5. Start Remote Container (Dev Machine)
+### 5. Configure Devcontainer (Dev Machine)
 
-Create `.env` in `docker/real/`:
+Copy the example env file:
 
 ```bash
-echo "HUSARNET_JOIN_CODE=<your-join-code>" > docker/real/.env
+cp .devcontainer/real-husarnet/.env.example .devcontainer/real-husarnet/.env
 ```
 
-Start with docker-compose (sidecar pattern):
+Edit `.devcontainer/real-husarnet/.env`:
+
+```bash
+HUSARNET_JOIN_CODE=fc94:xxxx:xxxx/xxxxxxxx
+```
+
+### 6. Start Devcontainer
+
+In VS Code:
+
+1. Open Command Palette (Cmd+Shift+P)
+2. Select **"Dev Containers: Reopen in Container"**
+3. Choose **"Fastbot Real Robot (Husarnet)"**
+
+The devcontainer uses a sidecar pattern:
+
+- `husarnet` container: Provides `hnet0` VPN interface
+- `devcontainer` container: Shares husarnet's network namespace
+
+### 7. Verify Connection
+
+In devcontainer terminal:
+
+```bash
+# Check Husarnet status (run in husarnet container)
+docker exec husarnet-devcontainer husarnet status
+# Should show both fastbot-pi and fastbot-dev as "active"
+
+# Check ROS2 topics
+ros2 topic list
+```
+
+### Alternative: Docker Compose (without VS Code)
 
 ```bash
 cd docker/real
+echo "HUSARNET_JOIN_CODE=<your-join-code>" > .env
 docker compose -f docker-compose.remote-husarnet.yaml up -d
-```
-
-This starts:
-
-- `husarnet` container: Provides `hnet0` VPN interface
-- `fastbot-remote` container: Shares husarnet's network namespace
-
-### 6. Verify Connection
-
-```bash
-docker exec husarnet husarnet status
-# Should show both fastbot-pi and fastbot-dev as "active"
-```
-
-### 7. Access Shell
-
-```bash
 docker exec -it fastbot-remote bash
-ros2 topic list
 ```
 
 ---
@@ -283,40 +298,47 @@ The devcontainer includes a service manager script:
 
 ## Comparison
 
-| Feature                  | Tailscale             | Husarnet                 |
-| ------------------------ | --------------------- | ------------------------ |
-| **Setup difficulty**     | ⭐ Easy               | ⭐⭐ Moderate            |
-| **IP type**              | IPv4 (100.x.x.x)      | IPv6 (fc94:...)          |
-| **CycloneDDS**           | ✅ Excellent          | ⚠️ Needs hostname config |
-| **Mac/Windows Docker**   | ✅ Works in container | ⚠️ Requires sidecar      |
-| **Devcontainer support** | ✅ Yes                | ❌ Docker-compose only   |
-| **Self-hosted option**   | ❌ No                 | ✅ Yes                   |
-| **Robotics features**    | ❌ General VPN        | ✅ Built for ROS         |
-| **Free tier**            | 100 devices           | 5 devices                |
+| Feature                  | Tailscale             | Husarnet           |
+| ------------------------ | --------------------- | ------------------ |
+| **Setup difficulty**     | ⭐ Easy               | ⭐⭐ Moderate      |
+| **IP type**              | IPv4 (100.x.x.x)      | IPv6 (fc94:...)    |
+| **CycloneDDS**           | ✅ Excellent          | ✅ Hostname-based  |
+| **Mac/Windows Docker**   | ✅ Works in container | ✅ Sidecar pattern |
+| **Devcontainer support** | ✅ Yes                | ✅ Yes (sidecar)   |
+| **Self-hosted option**   | ❌ No                 | ✅ Yes             |
+| **Robotics features**    | ❌ General VPN        | ✅ Built for ROS   |
+| **Free tier**            | 100 devices           | 5 devices          |
 
-**Recommendation:** Use **Tailscale** unless you need self-hosting or have specific Husarnet requirements.
+**Recommendation:** Use **Tailscale** for simpler setup, or **Husarnet** if you need self-hosting or robotics-specific features.
 
 ---
 
 ## File Reference
 
 ```
-.devcontainer/real/
-├── devcontainer.json              # Main devcontainer config
-├── devcontainer.tailscale-feature.json  # Reference: official Tailscale feature
-├── .env                           # TAILSCALE_AUTHKEY (gitignored)
-├── services.sh                    # Service manager script
-└── setup-tailscale.sh             # Tailscale startup script
+.devcontainer/
+├── real/                              # Tailscale devcontainer
+│   ├── devcontainer.json              # Main config (Tailscale)
+│   ├── .env.example                   # Template for auth key
+│   ├── .env                           # TAILSCALE_AUTHKEY (gitignored)
+│   ├── services.sh                    # Service manager script
+│   └── setup-tailscale.sh             # Tailscale startup script
+│
+└── real-husarnet/                     # Husarnet devcontainer
+    ├── devcontainer.json              # Main config (Husarnet sidecar)
+    ├── docker-compose.devcontainer.yaml  # Sidecar compose
+    ├── .env.example                   # Template for join code
+    └── .env                           # HUSARNET_JOIN_CODE (gitignored)
 
 docker/real/
-├── cyclonedds.xml                 # Tailscale peer config
-├── cyclonedds-husarnet.xml        # Husarnet peer config
-├── docker-compose.yaml            # Pi: robot + slam
-├── docker-compose.remote.yaml     # Dev: Tailscale (reference)
-├── docker-compose.remote-husarnet.yaml  # Dev: Husarnet sidecar
-├── Dockerfile.remote              # Dev container image
-├── Dockerfile.robot               # Pi robot image
-└── Dockerfile.slam                # Pi SLAM image
+├── cyclonedds.xml                     # Tailscale peer config
+├── cyclonedds-husarnet.xml            # Husarnet peer config (hostnames)
+├── docker-compose.yaml                # Pi: robot + slam
+├── docker-compose.remote.yaml         # Dev: Tailscale (docker-compose alt)
+├── docker-compose.remote-husarnet.yaml  # Dev: Husarnet (docker-compose alt)
+├── Dockerfile.remote                  # Dev container image
+├── Dockerfile.robot                   # Pi robot image
+└── Dockerfile.slam                    # Pi SLAM image
 ```
 
 ---
