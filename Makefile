@@ -38,9 +38,17 @@ build-real-slam:
 		-f ./docker/real/Dockerfile.slam \
 		-t $(REGISTRY):fastbot-ros2-slam-real .
 
-# ============ Remote Dev Build (amd64 - runs on dev machine) ============
+# ============ Remote Dev Build (multi-platform) ============
+# Multi-platform requires --push (can't --load multiple platforms locally)
 build-remote:
-	docker build --platform $(PLATFORM_AMD64) \
+    docker buildx build --platform linux/amd64,linux/arm64 \
+        --provenance=false --sbom=false \
+        -f ./docker/real/Dockerfile.remote \
+        -t $(REGISTRY):fastbot-ros2-remote --push .
+
+# Build for local use only (native platform - for devcontainer)
+build-remote-local:
+	docker build \
 		-f ./docker/real/Dockerfile.remote \
 		-t $(REGISTRY):fastbot-ros2-remote .
 
