@@ -95,7 +95,6 @@ fastbot-ros2-docker/
 ├── fastbot_gazebo/          # Simulation worlds & launch
 ├── fastbot_slam/            # Cartographer & Nav2 configs
 ├── fastbot_webapp/          # Web UI (roslibjs, ros3d)
-├── fastbot_gripper/         # Gripper control package
 │
 ├── serial_motor/            # Motor driver (Arduino bridge)
 ├── serial_motor_msgs/       # Motor message definitions
