@@ -11,11 +11,11 @@ Complete ROS2 development environment for the Fastbot differential drive robot. 
 <table align="center" width="100%">
   <tr>
     <td align="center" width="50%">
-      <img src="docs/images/fastbot_real.jpeg" alt="Fastbot Real Robot" width="100%">
+      <img src="docs/images/fastbot-real.jpg" alt="Fastbot Real Robot" width="100%">
       <br><strong>Real Robot</strong>
     </td>
     <td align="center" width="50%">
-      <img src="docs/images/fastbot_sim.png" alt="Fastbot Simulation" width="100%">
+      <img src="docs/images/fastbot-simulation.jpg" alt="Fastbot Simulation" width="100%">
       <br><strong>Gazebo Simulation</strong>
     </td>
   </tr>
