@@ -1,4 +1,6 @@
-# Fastbot ROS2 Docker
+# Fastbot
+
+> ROS2 Humble • Docker • Nav2 • Cartographer
 
 [![ROS 2 Humble](https://img.shields.io/badge/ROS%202-Humble-blue?logo=ros)](https://docs.ros.org/en/humble/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
