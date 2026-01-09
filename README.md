@@ -21,6 +21,12 @@ Complete ROS2 development environment for the Fastbot differential drive robot. 
   </tr>
 </table>
 
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=q9zMGE3xHQs">
+    <img src="https://img.shields.io/badge/▶%20Watch%20Demo-YouTube-red?style=for-the-badge&logo=youtube" alt="Watch Demo on YouTube">
+  </a>
+</p>
+
 ---
 
 ## Quick Start
