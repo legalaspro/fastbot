@@ -7,10 +7,15 @@
 #   View logs:           docker compose logs -f
 #   Stop all:            docker compose down
 #
-# Network Setup:
-#   Edit cyclonedds.xml and update the Peer addresses:
-#   - Pi IP: Run 'hostname -I' on Pi
-#   - Dev IP: Run 'hostname -I' on dev machine
+# Network Setup (Default: Local/Standalone):
+#   By default, uses cyclonedds-local.xml which works without any VPN.
+#   This allows the robot to run standalone on the Pi.
+#
+#   For REMOTE ACCESS from another machine, you need a VPN:
+#   1. Install Tailscale on Pi: curl -fsSL https://tailscale.com/install.sh | sh
+#   2. Change the volume mount below to use cyclonedds.xml instead
+#   3. Update cyclonedds.xml with your Tailscale IPs
+#   See README-REMOTE.md for full instructions.
 #
 # Startup sequence:
 #   1. Robot container starts first
@@ -39,7 +44,9 @@ services:
       - ROS_DOMAIN_ID=1
       - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
     volumes:
-      - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
+      # Default: local config (no VPN required)
+      # For remote access: change to ./cyclonedds.xml (Tailscale) or ./cyclonedds-husarnet.xml
+      - ./cyclonedds-local.xml:/ros2_ws/cyclonedds.xml:ro
     devices:
       - /dev/ttyACM0:/dev/lslidar # Lidar serial
       - /dev/ttyUSB0:/dev/arduino_nano # Arduino Nano (motor controller)
@@ -66,7 +73,9 @@ services:
       - ROS_DOMAIN_ID=1
       - CYCLONEDDS_URI=file:///ros2_ws/cyclonedds.xml
     volumes:
-      - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
+      # Default: local config (no VPN required)
+      # For remote access: change to ./cyclonedds.xml (Tailscale) or ./cyclonedds-husarnet.xml
+      - ./cyclonedds-local.xml:/ros2_ws/cyclonedds.xml:ro
     depends_on:
       robot:
         condition: service_healthy

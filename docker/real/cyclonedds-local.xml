@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  CycloneDDS Configuration for Fastbot (Local / Standalone)
+
+  Use this configuration when:
+    - Running the robot standalone on the Pi (no remote access needed)
+    - Running locally without VPN (Tailscale/Husarnet)
+  
+  This configuration allows CycloneDDS to auto-discover peers on the local network
+  using multicast. No additional setup required.
+
+  For remote access over VPN, see:
+    - cyclonedds.xml (Tailscale)
+    - cyclonedds-husarnet.xml (Husarnet)
+-->
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain id="any">
+    <General>
+      <!-- Use all available network interfaces -->
+      <AllowMulticast>true</AllowMulticast>
+    </General>
+    <Discovery>
+      <ParticipantIndex>auto</ParticipantIndex>
+      <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+    </Discovery>
+    <Tracing>
+      <Verbosity>warning</Verbosity>
+      <OutputFile>stderr</OutputFile>
+    </Tracing>
+  </Domain>
+</CycloneDDS>
+

@@ -19,10 +19,15 @@ echo "TAILSCALE_AUTHKEY=tskey-auth-YOUR_KEY" > .devcontainer/real/.env
 tailscale ip -4  # Note this IP (e.g., 100.73.231.76)
 # Edit docker/real/cyclonedds.xml with both IPs
 
-# 5. Pi: Start robot
-cd ~/fastbot/docker/real && docker compose up -d robot
+# 5. Pi: Update docker-compose.yaml to use Tailscale config
+#    Change: cyclonedds-local.xml → cyclonedds.xml
+cd ~/fastbot/docker/real
+nano docker-compose.yaml  # Change volume mount to ./cyclonedds.xml
 
-# 6. Dev: Start services and verify
+# 6. Pi: Start robot
+docker compose up -d robot
+
+# 7. Dev: Start services and verify
 ./services.sh start
 ros2 topic list  # Should see /fastbot/scan, /odom, etc.
 ```
@@ -138,6 +143,16 @@ Edit `docker/real/cyclonedds.xml` with both IPs:
 > **Important:** This file is used by BOTH Pi and devcontainer. Update it once, both sides read it.
 
 ### 7. Start Robot on Pi
+
+First, update `docker-compose.yaml` to use the Tailscale CycloneDDS config:
+
+```yaml
+volumes:
+  # Change from cyclonedds-local.xml to cyclonedds.xml for remote access
+  - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
+```
+
+Then start the robot:
 
 ```bash
 cd ~/fastbot/docker/real
@@ -331,6 +346,7 @@ The devcontainer includes a service manager script:
     └── .env                           # HUSARNET_JOIN_CODE (gitignored)
 
 docker/real/
+├── cyclonedds-local.xml               # Local config (no VPN, default)
 ├── cyclonedds.xml                     # Tailscale peer config
 ├── cyclonedds-husarnet.xml            # Husarnet peer config (hostnames)
 ├── docker-compose.yaml                # Pi: robot + slam

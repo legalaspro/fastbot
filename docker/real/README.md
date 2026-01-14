@@ -21,6 +21,10 @@ docker ps  # Should show (healthy)
 docker compose up -d slam
 ```
 
+> **Note:** The robot works standalone out of the box - **no VPN required** for local operation.
+> VPN (Tailscale/Husarnet) is only needed if you want to access the robot remotely from another machine.
+> See [VPN Setup for Remote Access](#vpn-setup-for-remote-access) for details.
+
 ---
 
 ## Contents
@@ -153,9 +157,20 @@ docker compose up -d slam
 
 ## VPN Setup for Remote Access
 
-To connect from a development machine, install a VPN on the Pi:
+> **Note:** VPN is **optional** - only needed if you want to control the robot remotely from another machine (Mac/Linux/Windows). The robot runs standalone without VPN.
 
-### Tailscale (Recommended)
+### When is VPN needed?
+
+| Use Case                                        | VPN Required? |
+| ----------------------------------------------- | ------------- |
+| Running robot standalone on Pi                  | ❌ No         |
+| Viewing topics from another machine on same LAN | ❌ No         |
+| Remote access from Mac/Linux over internet      | ✅ Yes        |
+| Devcontainer access to robot                    | ✅ Yes        |
+
+### Step 1: Install VPN on Pi
+
+#### Tailscale (Recommended)
 
 ```bash
 # Install
@@ -167,20 +182,31 @@ tailscale ip -4
 # Example: 100.88.1.19
 ```
 
-### Husarnet (Alternative)
+#### Husarnet (Alternative)
 
 ```bash
 # Install
 curl -fsSL https://install.husarnet.com/install.sh | sudo bash
 sudo systemctl enable husarnet
 sudo husarnet join <YOUR_JOIN_CODE> fastbot-pi
-
-# For Husarnet, update docker-compose.yaml to use husarnet config:
-# volumes:
-#   - ./cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
 ```
 
-### Time Sync (Important!)
+### Step 2: Update docker-compose.yaml to Use VPN Config
+
+Edit the volume mount in `docker-compose.yaml` to use the VPN-specific CycloneDDS config:
+
+```yaml
+volumes:
+  # For Tailscale:
+  - ./cyclonedds.xml:/ros2_ws/cyclonedds.xml:ro
+
+  # For Husarnet:
+  # - ./cyclonedds-husarnet.xml:/ros2_ws/cyclonedds.xml:ro
+```
+
+Then update `cyclonedds.xml` with your Tailscale IPs (run `tailscale ip -4` on each machine).
+
+### Step 3: Time Sync (Important!)
 
 Ensure NTP is enabled to prevent transform timeout errors:
 
