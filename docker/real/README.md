@@ -315,6 +315,20 @@ ls -la /dev/ttyUSB0 /dev/ttyACM0
 
 Both containers use `network_mode: "host"` and same `ROS_DOMAIN_ID=1`.
 
+### Running ROS2 natively on Pi alongside Docker?
+
+If you want to see Docker topics from ROS2 running directly on the Raspberry Pi (not in Docker), set these environment variables:
+
+```bash
+export ROS_DOMAIN_ID=1
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+
+# Now you can see Docker topics
+ros2 topic list
+```
+
+> **Note:** This works with any CycloneDDS config because Docker uses `network_mode: "host"` (shares Pi's network stack). Both native ROS2 and Docker see the same interfaces, including VPN interfaces like `tailscale0` when installed on the Pi.
+
 ### Lidar/Arduino not detected?
 
 Check which tty they're on:
